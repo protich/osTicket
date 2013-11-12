@@ -864,6 +864,9 @@ if(!$cfg->showNotesInline()) { ?>
     <?php
     } ?>
 </div>
+<div style="display:none;width:650px;" class="dialog collaborators">
+    <div class="body"></div>
+</div>
 <div style="display:none;" class="dialog" id="user-info">
     <div class="body"></div>
 </div>
