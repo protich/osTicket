@@ -445,6 +445,7 @@ if(!$cfg->showNotesInline()) { ?>
         <input type="hidden" name="a" value="reply">
         <span class="error"></span>
         <table style="width:100%" border="0" cellspacing="0" cellpadding="3">
+           <tbody id="to_sec">
             <tr>
                 <td width="120">
                     <label><strong>TO:</strong></label>
@@ -453,14 +454,18 @@ if(!$cfg->showNotesInline()) { ?>
                     <?php
                     $to = $ticket->getReplyToEmail();
                     if(($name=$ticket->getName()) && !strpos($name,'@'))
-                        $to =sprintf('%s <em>&lt;%s&gt;</em>', $name, $to);
-                    echo $to;
+                        $to =sprintf('%s &lt;%s&gt;', $name, $to);
+
+                    $emailReply = (!isset($info['emailreply']) || $info['emailreply']);
                     ?>
-                    &nbsp;&nbsp;&nbsp;
-                    <label><input type='checkbox' value='1' name="emailreply" id="remailreply"
-                        <?php echo ((!$info['emailreply'] && !$errors) || isset($info['emailreply']))?'checked="checked"':''; ?>> Email Reply</label>
+                    <select id="emailreply" name="emailreply">
+                        <option value="1" <?php echo $emailReply ?  'selected="selected"' : ''; ?>><?php echo $to; ?></option>
+                        <option value="0" <?php echo !$emailReply ? 'selected="selected"' : ''; ?>
+                            >&mdash;Do Not Email Reply&mdash;</option>
+                    </select>
                 </td>
             </tr>
+            </tbody>
             <?php
             if($errors['response']) {?>
             <tr><td width="120">&nbsp;</td><td class="error"><?php echo $errors['response']; ?>&nbsp;</td></tr>
