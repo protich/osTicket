@@ -378,9 +378,10 @@ class ModelInstanceIterator implements Iterator, ArrayAccess {
     var $queryset;
 
     function __construct($queryset=false) {
-        if ($queryset) {
-            $this->model = $queryset->model;
-            $this->resource = $queryset->getQuery();
+        $this->queryset = $queryset;
+        if ($this->queryset) {
+            $this->model = $this->queryset->model;
+            $this->resource = $this->queryset->getQuery();
         }
     }
 
@@ -482,10 +483,18 @@ class InstrumentedList extends ModelInstanceIterator {
 
         $object->{$this->key} = $this->id;
         $object->save();
-        $this->list[] = $object;
     }
     function remove($object) {
         $object->delete();
+    }
+
+    function count() {
+        return $this->queryset->count();
+    }
+
+    function expunge() {
+        if ($this->queryset && $this->queryset->delete())
+            $this->cache = array();
     }
 
     function offsetUnset($a) {
