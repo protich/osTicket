@@ -300,8 +300,13 @@ if ($results) {
                 AND thread.object_type="T") '
      .' LEFT JOIN '.THREAD_ENTRY_TABLE.' entry
             ON (entry.thread_id=thread.id) '
+<<<<<<< HEAD
      .' LEFT JOIN '.ATTACHMENT_TABLE.' attach
             ON (attach.object_id = entry.id AND attach.`type` = "H") '
+=======
+     .' LEFT JOIN '.THREAD_ENTRY_ATTACHMENT_TABLE.' attach
+            ON (attach.thread_entry_id = entry.id) '
+>>>>>>> Make threads generic
      .' LEFT JOIN '.TICKET_COLLABORATOR_TABLE.' collab
             ON ( ticket.ticket_id=collab.ticket_id) '
      .' WHERE ticket.ticket_id IN ('.implode(',', db_input(array_keys($results))).')
