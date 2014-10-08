@@ -25,15 +25,15 @@ $info=Format::htmlchars(($errors && $_POST) ? array_merge($info,$_POST) : $info)
     <h2><?php echo __('Custom List'); ?>
     <?php echo $list ? $list->getName() : 'Add new list'; ?></h2>
 
-<ul class="tabs">
-    <li><a href="#definition" class="active">
+<ul class="tabs" id="list-tabs">
+    <li class="active"><a href="#definition">
         <i class="icon-plus"></i> <?php echo __('Definition'); ?></a></li>
     <li><a href="#items">
         <i class="icon-list"></i> <?php echo __('Items'); ?></a></li>
     <li><a href="#properties">
         <i class="icon-asterisk"></i> <?php echo __('Properties'); ?></a></li>
 </ul>
-
+<div id="list-tabs_container">
 <div id="definition" class="tab_content">
     <table class="form_table" width="940" border="0" cellspacing="0" cellpadding="2">
     <thead>
@@ -104,7 +104,7 @@ $info=Format::htmlchars(($errors && $_POST) ? array_merge($info,$_POST) : $info)
     </tbody>
     </table>
 </div>
-<div id="properties" class="tab_content" style="display:none">
+<div id="properties" class="hidden tab_content">
     <table class="form_table" width="940" border="0" cellspacing="0" cellpadding="2">
     <thead>
         <tr>
@@ -206,7 +206,7 @@ $info=Format::htmlchars(($errors && $_POST) ? array_merge($info,$_POST) : $info)
     </tbody>
 </table>
 </div>
-<div id="items" class="tab_content" style="display:none">
+<div id="items" class="hidden tab_content">
     <table class="form_table" width="940" border="0" cellspacing="0" cellpadding="2">
     <thead>
     <?php if ($list) {
@@ -324,6 +324,7 @@ $info=Format::htmlchars(($errors && $_POST) ? array_merge($info,$_POST) : $info)
     }?>
     </tbody>
     </table>
+</div>
 </div>
 <p class="centered">
     <input type="submit" name="submit" value="<?php echo $submit_text; ?>">
