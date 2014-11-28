@@ -8,7 +8,7 @@ class DraftAjaxAPI extends AjaxController {
 
     function _createDraft($vars) {
         $field_list = array('response', 'note', 'answer', 'body',
-             'message', 'issue');
+             'message', 'issue', 'description');
         foreach ($field_list as $field) {
             if (isset($_POST[$field])) {
                 $vars['body'] = urldecode($_POST[$field]);
@@ -50,7 +50,7 @@ class DraftAjaxAPI extends AjaxController {
 
     function _updateDraft($draft) {
         $field_list = array('response', 'note', 'answer', 'body',
-             'message', 'issue');
+             'message', 'issue', 'description');
         foreach ($field_list as $field) {
             if (isset($_POST[$field])) {
                 $body = urldecode($_POST[$field]);
