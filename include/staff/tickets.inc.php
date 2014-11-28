@@ -457,8 +457,11 @@ if ($results) {
                 </td>
                 <?php } ?>
                 <td title="<?php echo $row['email']; ?>" nowrap>
-                  <a class="Icon <?php echo strtolower($row['source']); ?>Ticket ticketPreview" title="Preview Ticket"
-                    href="tickets.php?id=<?php echo $row['ticket_id']; ?>"><?php echo $tid; ?></a></td>
+                  <a class="Icon <?php echo strtolower($row['source']); ?>Ticket preview"
+                    title="Preview Ticket"
+                    href="tickets.php?id=<?php echo $row['ticket_id']; ?>"
+                    data-preview="#tickets/<?php echo $row['ticket_id']; ?>/preview"
+                    ><?php echo $tid; ?></a></td>
                 <td align="center" nowrap><?php echo Format::db_datetime($row['effective_date']); ?></td>
                 <td><a <?php if ($flag) { ?> class="Icon <?php echo $flag; ?>Ticket" title="<?php echo ucfirst($flag); ?> Ticket" <?php } ?>
                     href="tickets.php?id=<?php echo $row['ticket_id']; ?>"><?php echo $subject; ?></a>
