@@ -656,7 +656,7 @@ if ($results) {
                 continue;
             ?><fieldset class="span6">
             <label><?php echo $f->getLabel(); ?>:</label><div><?php
-                     $f->render('search'); ?></div>
+                     $f->render(array('mode'=>'search')); ?></div>
             </fieldset>
         <?php } ?>
         <hr/>

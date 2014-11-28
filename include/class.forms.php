@@ -491,15 +491,15 @@ class FormField {
             return array();
     }
 
-    function render($mode=null) {
-        $rv = $this->getWidget()->render($mode);
+    function render($options=array()) {
+        $rv = $this->getWidget()->render($options);
         if ($v = $this->get('visibility')) {
             $v->emitJavascript($this);
         }
         return $rv;
     }
 
-    function renderExtras($mode=null) {
+    function renderExtras($options=array()) {
         return;
     }
 
@@ -1686,7 +1686,7 @@ class Widget {
 class TextboxWidget extends Widget {
     static $input_type = 'text';
 
-    function render($mode=false) {
+    function render($options=array()) {
         $config = $this->field->getConfiguration();
         if (isset($config['size']))
             $size = "size=\"{$config['size']}\"";
@@ -1726,7 +1726,7 @@ class PasswordWidget extends TextboxWidget {
 }
 
 class TextareaWidget extends Widget {
-    function render($mode=false) {
+    function render($options=array()) {
         $config = $this->field->getConfiguration();
         $class = $cols = $rows = $maxlength = "";
         if (isset($config['rows']))
@@ -1753,7 +1753,7 @@ class TextareaWidget extends Widget {
 }
 
 class PhoneNumberWidget extends Widget {
-    function render($mode=false) {
+    function render($options=array()) {
         $config = $this->field->getConfiguration();
         list($phone, $ext) = explode("X", $this->value);
         ?>
@@ -1787,7 +1787,9 @@ class ChoicesWidget extends Widget {
         ),
     );
 
-    function render($mode=false) {
+    function render($options=array()) {
+
+        $mode = isset($options['mode']) ? $options['mode'] : null;
 
         if ($mode == 'view') {
             if (!($val = (string) $this->field))
@@ -1886,7 +1888,7 @@ class CheckboxWidget extends Widget {
         $this->name = '_field-checkboxes';
     }
 
-    function render($mode=false) {
+    function render($options=array()) {
         $config = $this->field->getConfiguration();
         if (!isset($this->value))
             $this->value = $this->field->get('default');
@@ -1915,7 +1917,7 @@ class CheckboxWidget extends Widget {
 }
 
 class DatetimePickerWidget extends Widget {
-    function render($mode=false) {
+    function render($options=array()) {
         global $cfg;
 
         $config = $this->field->getConfiguration();
@@ -1986,7 +1988,7 @@ class DatetimePickerWidget extends Widget {
 }
 
 class SectionBreakWidget extends Widget {
-    function render($mode=false) {
+    function render($options=array()) {
         ?><div class="form-header section-break"><h3><?php
         echo Format::htmlchars($this->field->get('label'));
         ?></h3><em><?php echo Format::htmlchars($this->field->get('hint'));
@@ -1996,20 +1998,27 @@ class SectionBreakWidget extends Widget {
 }
 
 class ThreadEntryWidget extends Widget {
-    function render($client=null) {
+    function render($options=array()) {
         global $cfg;
+
+        if ($options['client']) {
+            $options['draft-namespace'] = $options['draft-namespace']
+                ?: 'ticket.client';
+             $options['draft-object-id'] = substr(session_id(), -12);
+        } elseif (!$options['draft-namespace'])
+            $options['draft-namespace'] = 'ticket.staff';
 
         ?><div style="margin-bottom:0.5em;margin-top:0.5em"><strong><?php
         echo Format::htmlchars($this->field->get('label'));
-        ?></strong>:</div>
+        ?></strong>: </div>
         <textarea style="width:100%;" name="<?php echo $this->field->get('name'); ?>"
             placeholder="<?php echo Format::htmlchars($this->field->get('hint')); ?>"
-            <?php if (!$client) { ?>
-                data-draft-namespace="ticket.staff"
-            <?php } else { ?>
-                data-draft-namespace="ticket.client"
-                data-draft-object-id="<?php echo substr(session_id(), -12); ?>"
-            <?php } ?>
+            data-draft-namespace="<?php echo $options['draft-namespace']; ?>"
+            <?php
+            if (isset($options['draft-object-id']))
+                echo sprintf('data-draft-object-id="%s"',
+                        $options['draft-object-id']);
+            ?>
             class="richtext draft draft-delete ifhtml"
             cols="21" rows="8" style="width:80%;"><?php echo
             Format::htmlchars($this->value); ?></textarea>
@@ -2019,7 +2028,7 @@ class ThreadEntryWidget extends Widget {
             return;
 
         $attachments = $this->getAttachments($config);
-        print $attachments->render($client);
+        print $attachments->render($options);
         foreach ($attachments->getMedia() as $type=>$urls) {
             foreach ($urls as $url)
                 Form::emitMedia($url, $type);
@@ -2047,7 +2056,7 @@ class FileUploadWidget extends Widget {
         ),
     );
 
-    function render($how) {
+    function render($options) {
         $config = $this->field->getConfiguration();
         $name = $this->field->getFormName();
         $id = substr(md5(spl_object_hash($this)), 10);
@@ -2125,6 +2134,42 @@ class FileUploadWidget extends Widget {
 }
 
 class FileUploadError extends Exception {}
+
+class FreeTextField extends FormField {
+    static $widget = 'FreeTextWidget';
+
+    function getConfigurationOptions() {
+        return array(
+            'content' => new TextareaField(array(
+                'configuration' => array('html' => true, 'size'=>'large'),
+                'label'=>__('Content'), 'required'=>true, 'default'=>'',
+                'hint'=>__('Free text shown in the form, such as a disclaimer'),
+            )),
+        );
+    }
+
+    function hasData() {
+        return false;
+    }
+
+    function isBlockLevel() {
+        return true;
+    }
+}
+
+class FreeTextWidget extends Widget {
+    function render($options=array()) {
+        $config = $this->field->getConfiguration();
+        ?><div class=""><h3><?php
+            echo Format::htmlchars($this->field->get('label'));
+        ?></h3><em><?php
+            echo Format::htmlchars($this->field->get('hint'));
+        ?></em><div><?php
+            echo Format::viewableImages($config['content']); ?></div>
+        </div>
+        <?php
+    }
+}
 
 class VisibilityConstraint {
 

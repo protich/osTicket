@@ -51,7 +51,7 @@ if (isset($options['entry']) && $options['mode'] == 'edit') { ?>
                 <?php echo Format::htmlchars($field->get('label')); ?>:</td>
                 <td><div style="position:relative"><?php
             }
-            $field->render(); ?>
+            $field->render($options); ?>
             <?php if ($field->get('required')) { ?>
                 <font class="error">*</font>
             <?php

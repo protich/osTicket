@@ -5,7 +5,7 @@
     ?>
     <tr><td colspan="2"><hr />
     <div class="form-header" style="margin-bottom:0.5em">
-    <?php print ($form instanceof DynamicFormEntry) 
+    <?php print ($form instanceof DynamicFormEntry)
         ? $form->getForm()->getMedia() : $form->getMedia(); ?>
     <h3><?php echo Format::htmlchars($form->getTitle()); ?></h3>
     <em><?php echo Format::htmlchars($form->getInstructions()); ?></em>
@@ -30,7 +30,7 @@
                 <?php echo Format::htmlchars($field->get('label')); ?>:</label></td><td>
             <?php
             }
-            $field->render('client'); ?>
+            $field->render(array('client'=>true)); ?>
             <?php if ($field->get('required')) { ?>
                 <font class="error">*</font>
             <?php
@@ -44,7 +44,7 @@
                 <br />
                 <font class="error"><?php echo $e; ?></font>
             <?php }
-            $field->renderExtras('client');
+            $field->renderExtras(array('client'=>true));
             ?>
             </td>
         </tr>
