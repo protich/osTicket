@@ -1780,7 +1780,7 @@ class MySqlCompiler extends SqlCompiler {
         elseif ($what instanceof SqlFunction) {
             return $what->toSql($this);
         }
-        elseif (!isset($what)) {
+        elseif ($what === null) {
             return 'NULL';
         }
         else {
