@@ -152,6 +152,7 @@ class Dept extends VerySimpleModel {
                     'onvacation' => 0,
                 ));
 
+            $members->distinct('staff_id');
             $members->order_by('lastname', 'firstname');
 
             if ($criteria)

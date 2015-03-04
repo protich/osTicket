@@ -639,11 +639,11 @@ implements AuthenticatedUser, EmailContact {
             return null;
     }
 
-    static function getStaffMembers($availableonly=false) {
+    static function getStaffMembers($criteria=array()) {
 
         $members = static::objects()->order_by('lastname', 'firstname');
 
-        if ($availableonly) {
+        if (isset($criteria['available'])) {
             $members = $members->filter(array(
                 'group__flags__hasbit' => Group::FLAG_ENABLED,
                 'onvacation' => 0,
@@ -660,7 +660,7 @@ implements AuthenticatedUser, EmailContact {
     }
 
     static function getAvailableStaffMembers() {
-        return self::getStaffMembers(true);
+        return self::getStaffMembers(array('available'=>true));
     }
 
     static function getIdByUsername($username) {
