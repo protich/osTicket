@@ -47,18 +47,17 @@ class DynamicForm extends VerySimpleModel {
     var $_dfields;
 
     function getFields($cache=true) {
-        if (!$cache)
-            $fields = false;
-        else
-            $fields = &$this->_fields;
-
-        if (!$fields) {
-            $fields = new ListObject();
-            foreach ($this->getDynamicFields() as $f)
-                $fields->append($f->getImpl($f));
+        if (!$cache) {
+            $this->_fields = null;
         }
 
-        return $fields;
+        if (!$this->_fields) {
+            $this->_fields = new ListObject();
+            foreach ($this->getDynamicFields() as $f)
+                $this->_fields->append($f->getImpl($f));
+        }
+
+        return $this->_fields;
     }
 
     function getDynamicFields() {
@@ -101,11 +100,26 @@ class DynamicForm extends VerySimpleModel {
 
     function getForm($source=false) {
         if (!$this->_form || $source) {
-            $fields = $this->getFields($this->_has_data);
+            $fields = $this->getFields();
             $this->_form = new Form($fields, $source, array(
                 'title'=>$this->title, 'instructions'=>$this->instructions));
         }
         return $this->_form;
+    }
+
+    function addErrors(array $formErrors, $replace=false) {
+        $fields = array();
+        foreach ($this->getFields() as $f)
+            $fields[$f->get('id')] = $f;
+        foreach ($formErrors as $id => $fieldErrors) {
+            if (isset($fields[$id])) {
+                if ($replace)
+                    $fields[$id]->_errors = $fieldErrors;
+                else
+                    foreach ($fieldErrors as $E)
+                        $fields[$id]->addError($E);
+            }
+        }
     }
 
     function isDeletable() {
@@ -697,8 +711,12 @@ class DynamicFormEntry extends VerySimpleModel {
     function getForm() {
         if (!isset($this->_form)) {
             $this->_form = DynamicForm::lookup($this->get('form_id'));
-            if ($this->_form && isset($this->id))
-                $this->_form->data($this);
+            if ($this->_form) {
+                if (isset($this->id))
+                    $this->_form->data($this);
+                if ($this->errors())
+                    $this->_form->addErrors($this->errors(), true);
+            }
         }
         return $this->_form;
     }
@@ -710,7 +728,10 @@ class DynamicFormEntry extends VerySimpleModel {
             //  even when stored elsewhere -- important during validation
             foreach ($this->getForm()->getDynamicFields() as $field) {
                 $field->setForm($this);
-                $this->_fields[$field->get('id')] = $field->getImpl($field);
+                $field = $field->getImpl($field);
+                if ($field instanceof ThreadEntryField)
+                    continue;
+                $this->_fields[$field->get('id')] = $field;
             }
             // Get answers to entries
             foreach ($this->getAnswers() as $a) {
