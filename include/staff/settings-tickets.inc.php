@@ -211,7 +211,7 @@ if(!($maxfileuploads=ini_get('max_file_uploads')))
             <td>
 <?php
                 $tform = TicketForm::objects()->one()->getForm();
-                $f = $tform->getField('message');
+                if (($f = $tform->getField('message'))) {
 ?>
                 <a class="action-button field-config" style="overflow:inherit"
                     href="#ajax.php/form/field-config/<?php
@@ -220,6 +220,8 @@ if(!($maxfileuploads=ini_get('max_file_uploads')))
                         $.dialog($(this).attr('href').substr(1), [201]);
                         return false;
                     "><i class="icon-edit"></i> <?php echo __('Config'); ?></a>
+                <?php
+                } ?>
                 <i class="help-tip icon-question-sign" href="#ticket_attachment_settings"></i>
             </td>
         </tr>

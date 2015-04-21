@@ -31,13 +31,8 @@ class Form {
     var $_errors = null;
     var $_source = false;
 
-    function __construct($fields=array(), $source=null, $options=array()) {
-        $this->fields = $fields;
-        foreach ($fields as $k=>$f) {
-            $f->setForm($this);
-            if (!$f->get('name') && $k && !is_numeric($k))
-                $f->set('name', $k);
-        }
+    function __construct($source=null, $options=array()) {
+
         if (isset($options['title']))
             $this->title = $options['title'];
         if (isset($options['instructions']))
@@ -67,7 +62,7 @@ class Form {
         $this->fields = $fields;
         foreach ($fields as $k=>$f) {
             $f->setForm($this);
-            if (!$f->get('name') && $k)
+            if (!$f->get('name') && $k && !is_numeric($k))
                 $f->set('name', $k);
         }
     }
@@ -314,7 +309,6 @@ class SimpleForm extends Form {
         parent::__construct($source, $options);
         $this->setFields($fields);
     }
-
 }
 
 require_once(INCLUDE_DIR . "class.json.php");
@@ -778,6 +772,7 @@ class FormField {
         if ($v = $this->get('visibility')) {
             $v->emitJavascript($this);
         }
+
         return $rv;
     }
 
@@ -3044,9 +3039,18 @@ class VisibilityConstraint {
     function emitJavascript($field) {
         $func = 'recheck';
         $form = $field->getForm();
-?>
+        ?>
     <script type="text/javascript">
       !(function() {
+
+        //Validation checks on change/blur
+        $('#<?php echo $field->getWidget()->id; ?>').on('change',
+            function() {
+                alert('Field '+ $(this).attr('id') +' changed!');
+            }
+           );
+
+        // Visibility constraints
         var <?php echo $func; ?> = function() {
           var target = $('#field<?php echo $field->getWidget()->id; ?>');
 
@@ -3303,7 +3307,7 @@ class TransferForm extends Form {
                     'default'=>'',
                     'configuration' => array(
                         'html' => true,
-                        'size' => 'large',
+                        'size' => 'small',
                         'placeholder' => __('Optional reason for the transfer'),
                         ),
                     )

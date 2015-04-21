@@ -116,7 +116,7 @@ class DynamicForm extends VerySimpleModel {
         if ($source)
             $this->reset();
         $fields = $this->getFields();
-        $form = new Form($fields, $source, array(
+        $form = new SimpleForm($fields, $source, array(
             'title' => $this->getLocal('title'),
             'instructions' => $this->getLocal('instructions'))
         );
@@ -287,7 +287,7 @@ class DynamicForm extends VerySimpleModel {
         if (!$cdata
                 || !$cdata['table']
                 || !($e = $answer->getEntry())
-                || $e->getForm()->get('type') != $cdata['object_type'])
+                || $e->form->get('type') != $cdata['object_type'])
             return;
 
         // $record = array();
@@ -315,10 +315,10 @@ class DynamicForm extends VerySimpleModel {
     static function updateDynamicFormEntryAnswer($answer, $data) {
         if (!$answer
                 || !($e = $answer->getEntry())
-                || !$e->getForm())
+                || !$e->form)
             return;
 
-        switch ($e->getForm()->get('type')) {
+        switch ($e->form->get('type')) {
         case 'T':
             return TicketForm::updateDynamicDataView($answer, $data);
         case 'A':
@@ -328,10 +328,10 @@ class DynamicForm extends VerySimpleModel {
     }
 
     static function updateDynamicFormField($field, $data) {
-        if (!$field || !$field->getForm())
+        if (!$field || !$field->form)
             return;
 
-        switch ($field->getForm()->get('type')) {
+        switch ($field->form->get('type')) {
         case 'T':
             return TicketForm::dropDynamicDataView(TicketForm::$cdata['table']);
         case 'A':
@@ -976,7 +976,7 @@ class DynamicFormEntry extends VerySimpleModel {
     function getForm() {
         if (!isset($this->_form)) {
             // XXX: Should source be $this?
-            $form = new Form($this->getFields(), $this->getSource(),
+            $form = new SimpleForm($this->getFields(), $this->getSource(),
             array(
                 'title' => $this->getTitle(),
                 'instructions' => $this->getInstructions(),
@@ -1713,6 +1713,68 @@ class TypeaheadSelectionWidget extends ChoicesWidget {
             return trim($v);
         }
         return parent::getValue();
+    }
+}
+
+/* Form utils */
+
+class FormUtils {
+
+    /* Generic assignment form - used to assign tickets or tasks to an agent
+       or a team
+    */
+    static function assignmentForm($source=null, $validate=false) {
+
+        $fields = array(
+                'assignId' => new AssigneeField(array(
+                        'id'=>1,
+                        'label' => __('Assignee'),
+                        'flags' => hexdec(0X450F3),
+                        'required' => true,
+                        'validator-error' => __('Assignee selection required'),
+                        )
+                    ),
+                'comments' => new TextareaField(array(
+                        'id' => 2,
+                        'label'=> '',
+                        'required'=>false,
+                        'default'=>'',
+                        'configuration' => array(
+                            'html' => true,
+                            'size' => 'large',
+                            'placeholder' => __('Optional reason for the assignment'),
+                            ),
+                        )
+                    ),
+                );
+
+        $form = new SimpleForm($fields, $source);
+        if ($validate)
+            $form->isValid();
+
+        return $form;
+    }
+
+    /* Render a form based on requested style
+       TODO: Move the logic here to $form->render()
+     */
+    static function render($form, $options) {
+
+        //TODO: Do form vs style validation
+        if (!$form)
+            return;
+
+        //XXX: We're assuming agents/staff view render
+        switch(strtolower($options['template'])) {
+        case 'simple':
+            $inc = STAFFINC_DIR . 'templates/dynamic-form-simple.tmpl.php';
+            break;
+        default:
+            throw new Exception(sprintf(__('%s: Unknown template style %s'),
+                        'FormUtils', $options['template']));
+        }
+
+        include $inc;
     }
 }
 ?>

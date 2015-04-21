@@ -326,7 +326,9 @@ var scp_prep = function() {
 
     $('.dialog').delegate('input.close, a.close', 'click', function(e) {
         e.preventDefault();
-        $(this).parents('div.dialog')
+        var $dialog = $(this).parents('div.dialog');
+        $dialog.off('blur.redactor');
+        $dialog
         .hide()
         .removeAttr('style');
         $.toggleOverlay(false);
@@ -788,6 +790,7 @@ $(document).on('pjax:start', function() {
     // Cancel save-changes warning banner
     $(document).unbind('pjax:beforeSend.changed');
     $(window).unbind('beforeunload');
+
     // Close popups
     $('.dialog .body').empty().parent().hide();
     // Close tooltips
