@@ -285,6 +285,23 @@ case 'relevance':
     $tickets->order_by(new SqlCode('__relevance__'), $orm_dir);
     break;
 
+case 'priority':
+    $tickets->order_by('cdata__priority__priority_urgency', $orm_dir_r);
+    break;
+
+case 'assignee':
+    switch ($cfg->getAgentNameFormat()){
+    case 'last':
+    case 'lastfirst':
+    case 'legal':
+        $tickets->order_by(($sort_dir ? '' : '-') . 'staff__lastname', ($sort_dir ? '' : '-') . 'staff__firstname');
+        break;
+
+    default:
+        $tickets->order_by(($sort_dir ? '' : '-') . 'staff__firstname', ($sort_dir ? '' : '-') . 'staff__lastname');
+    }
+    break;
+
 default:
 case 'priority,updated':
     $tickets->order_by('cdata__priority__priority_urgency', $orm_dir_r);
@@ -377,14 +394,49 @@ return false;">
  <input type="hidden" name="status" value="<?php echo
  Format::htmlchars($_REQUEST['status'], true); ?>" >
  <table class="list" border="0" cellspacing="1" cellpadding="2" width="940">
-    <thead>
-        <tr>
+ <thead onclick="javascript:
+     var clicked = $(event.target).closest('[data-mode]');
+     if (!clicked.length)
+         return;
+     var query = addSearchParam({'sort': clicked.data('mode'), 'dir': clicked.data('dir')});
+     $.pjax({
+         url: '?' + query,
+         timeout: 2000,
+         container: '#pjax-container'});">
+     <tr>
+        <?php
+            $flip_dir = function($col) use ($sort_cols, $sort_dir) {
+                if ($sort_cols == $col)
+                    return $sort_dir == 1 ? 0 : 1;
+                return 1;
+            };
+            $show_sort_icon = function($col) use ($sort_cols, $sort_dir) {
+                if ($sort_cols == $col) {
+                    $icon = "icon-sort-";
+                    $icon .= ($sort_dir) ? 'up' : 'down';
+                    return '<i class="'.$icon.'"></i>';
+                }
+                else {
+                    // Not currently sorted by this column
+                    return '<i class="icon-sort faded-more"></i>';
+                }
+            };
+        ?>
             <?php if ($thisstaff->canManageTickets()) { ?>
 	        <th width="12px">&nbsp;</th>
             <?php } ?>
-	        <th width="70">
-                <?php echo __('Ticket'); ?></th>
-	        <th width="100">
+            <th width="7.4%" data-mode="number" data-dir="<?php echo $flip_dir('number'); ?>"
+                style="position:relative" class="clickable">
+                <div style="position:absolute;right:5px">
+                    <?php echo $show_sort_icon('number'); ?>
+                </div>
+                <?php echo __('Ticket'); ?>
+            </th>
+            <th width="14.6%" data-mode="<?php echo $date_col ?: 'created'; ?>" data-dir="<?php echo $flip_dir($date_col ?: 'created'); ?>"
+                style="position:relative" class="clickable">
+                <div style="position:absolute;right:5px">
+                    <?php echo $show_sort_icon($date_col ?: 'created'); ?>
+                </div>
                 <?php echo $date_header ?: __('Date Created'); ?></th>
 	        <th width="280">
                 <?php echo __('Subject'); ?></th>
@@ -392,11 +444,19 @@ return false;">
                 <?php echo __('From');?></th>
             <?php
             if($search && !$status) { ?>
-                <th width="60">
+                <th width="60" data-mode="status" data-dir="<?php echo $flip_dir('status'); ?>"
+                style="position:relative" class="clickable">
+                    <div style="position:absolute;right:5px">
+                        <?php echo $show_sort_icon('status'); ?>
+                    </div>
                     <?php echo __('Status');?></th>
             <?php
             } else { ?>
-                <th width="60" <?php echo $pri_sort;?>>
+                <th width="60" data-mode="priority" data-dir="<?php echo $flip_dir('priority'); ?>"
+                style="position:relative" class="clickable">
+                    <div style="position:absolute;right:5px">
+                        <?php echo $show_sort_icon('priority'); ?>
+                    </div>
                     <?php echo __('Priority');?></th>
             <?php
             }
@@ -404,16 +464,28 @@ return false;">
             if($showassigned ) {
                 //Closed by
                 if(!strcasecmp($status,'closed')) { ?>
-                    <th width="150">
+                    <th width="150" data-mode="closed" data-dir="<?php echo $flip_dir('closed'); ?>"
+                style="position:relative" class="clickable">
+                    <div style="position:absolute;right:5px">
+                        <?php echo $show_sort_icon('closed'); ?>
+                    </div>
                         <?php echo __('Closed By'); ?></th>
                 <?php
                 } else { //assigned to ?>
-                    <th width="150">
+                    <th width="150" data-mode="assignee" data-dir="<?php echo $flip_dir('assignee'); ?>"
+                style="position:relative" class="clickable">
+                    <div style="position:absolute;right:5px">
+                        <?php echo $show_sort_icon('assignee'); ?>
+                    </div>
                         <?php echo __('Assigned To'); ?></th>
                 <?php
                 }
             } else { ?>
-                <th width="150">
+                <th width="150" data-mode="department" data-dir="<?php echo $flip_dir('department'); ?>"
+                style="position:relative" class="clickable">
+                    <div style="position:absolute;right:5px">
+                        <?php echo $show_sort_icon('department'); ?>
+                    </div>
                     <?php echo __('Department');?></th>
             <?php
             } ?>

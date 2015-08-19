@@ -1414,10 +1414,12 @@ i.help-tip {
     opacity: 0.8;
     text-indent: initial;
 }
-i.help-tip:hover {
-    color: orange !important;
+ i.help-tip:hover {
+     color: orange !important;
+     opacity: 1;
+}
+i.help-tip:hover, .clickable:hover {
     cursor: pointer;
-    opacity: 1;
 }
 
 caption > i.help-tip {
