@@ -99,7 +99,6 @@ if ($task->isOverdue())
                 <a
                 id="reload-task"
                 href="tasks.php?id=<?php echo $task->getId(); ?>"
-                href="tasks.php?id=<?php echo $task->getId(); ?>"
                 ><i class="icon-refresh"></i> <?php
                 echo sprintf(__('Task #%s'), $task->getNumber()); ?></a>
                    <?php if ($task) { ?> – <small><span class="ltr"><?php echo $task->getTitle(); ?></span></small>
@@ -266,43 +265,139 @@ if (!$ticket) { ?>
             </td>
         </tr>
     </table>
-    <br>
-    <br>
-    <table class="ticket_info" cellspacing="0" cellpadding="0" width="940" border="0">
     <?php
-    $idx = 0;
+    if (($_ticket=$task->ticket)) { ?>
+    <br>
+    <table class="ticket_info custom-data" cellspacing="0" cellpadding="0" width="940" border="0">
+        <thead>
+            <th colspan="2">
+                <a
+                class="preview"
+                data-preview="#tickets/<?php echo $_ticket->getId(); ?>/preview"
+                href="tickets.php?id=<?php echo $_ticket->getId(); ?>"
+                ><?php
+                    echo sprintf(__('Ticket #%s'), $_ticket->getNumber()); ?></a>
+            <?php
+                echo sprintf(' - <span class="faded">%s</span',
+                        Format::htmlchars($_ticket->getSubject()));
+            ?>
+            </th>
+        </thead>
+        <tbody>
+        <tr>
+            <td width="50%">
+                <table border="0" cellspacing="" cellpadding="4" width="100%">
+                    <tr>
+                        <td width="100"><?php echo __('Status');?>:</td>
+                        <td><?php echo $task->getStatus(); ?></td>
+                    </tr>
+
+                    <tr>
+                        <td><?php echo __('Create Date');?>:</td>
+                        <td><?php echo Format::datetime($_ticket->getCreateDate()); ?></td>
+                    </tr>
+                    <?php
+                    if($_ticket->isOpen()){ ?>
+                    <tr>
+                        <td><?php echo __('Due Date');?>:</td>
+                        <td><?php echo Format::datetime($_ticket->getEstDueDate()); ?></td>
+                    </tr>
+                    <?php
+                    }else { ?>
+                    <tr>
+                        <td><?php echo __('Close Date');?>:</td>
+                        <td><?php echo Format::datetime($_ticket->getCloseDate()); ?></td>
+                    </tr>
+                    <?php
+                    }
+                    ?>
+                </table>
+            </td>
+            <td width="50%" style="vertical-align:top">
+                <table cellspacing="0" cellpadding="4" width="100%" border="0">
+
+                    <tr>
+                        <td><?php echo __('Department');?>:</td>
+                        <td><?php echo Format::htmlchars($_ticket->getDeptName()); ?></td>
+                    </tr>
+                    <?php
+                    if ($_ticket->isOpen()) { ?>
+                    <tr>
+                        <td width="100"><?php echo __('Assigned To');?>:</td>
+                        <td>
+                            <?php
+                            if ($assigned=$_ticket->getAssigned())
+                                echo Format::htmlchars($assigned);
+                            else
+                                echo '<span class="faded">&mdash; '.__('Unassigned').' &mdash;</span>';
+                            ?>
+                        </td>
+                    </tr>
+                    <?php
+                    } else { ?>
+                    <tr>
+                        <td width="100"><?php echo __('Closed By');?>:</td>
+                        <td>
+                            <?php
+                            if (($s = $_ticket->getStaff()))
+                                echo Format::htmlchars($s->getName());
+                            else
+                                echo '<span class="faded">&mdash; '.__('Unknown').' &mdash;</span>';
+                            ?>
+                        </td>
+                    </tr>
+                    <?php
+                    } ?>
+                    <tr>
+                        <td width="100"><?php echo __('Help Topic');?>:</td>
+                        <td><?php echo Format::htmlchars($_ticket->getHelpTopic()); ?></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+<?php
+    }
+
     foreach (DynamicFormEntry::forObject($task->getId(),
                 ObjectModel::OBJECT_TYPE_TASK) as $form) {
         $answers = $form->getAnswers()->exclude(Q::any(array(
-            'field__flags__hasbit' => DynamicFormField::FLAG_EXT_STORED
+            'field__flags__hasbit' => DynamicFormField::FLAG_EXT_STORED,
+            'field__name__in' => array('title', 'priority')
         )));
-        if (!$answers || count($answers) == 0)
-            continue;
 
+        $displayed = array();
+        foreach($answers as $a) {
+            if (!($v = $a->display()))
+                continue;
+            $displayed[] = array($a->getLocal('label'), $v);
+        }
+        if (count($displayed) == 0)
+            continue;
         ?>
+        <table class="ticket_info custom-data" cellspacing="0" cellpadding="0" width="940" border="0">
+        <thead>
+            <th colspan="2"><?php echo Format::htmlchars($form->getTitle()); ?></th>
+        </thead>
+        <tbody>
+    <?php
+        foreach ($displayed as $stuff) {
+            list($label, $v) = $stuff;
+    ?>
             <tr>
-            <td colspan="2">
-                <table cellspacing="0" cellpadding="4" width="100%" border="0">
-                <?php foreach($answers as $a) {
-                    if (!($v = $a->display())) continue; ?>
-                    <tr>
-                        <th width="100"><?php
-                            echo $a->getField()->get('label');
-                        ?>:</th>
-                        <td><?php
-                            echo $v;
-                        ?></td>
-                    </tr>
-                    <?php
-                } ?>
-                </table>
-            </td>
+                <td width="200"><?php
+    echo Format::htmlchars($label);
+                ?>:</th>
+                <td><?php
+    echo $v;
+                ?></td>
             </tr>
-        <?php
-        $idx++;
-    } ?>
-    </table>
-<?php
+    <?php } ?>
+        </tbody>
+        </table>
+    <?php
+    }
 } ?>
 <div class="clear"></div>
 <div id="task_thread_container">

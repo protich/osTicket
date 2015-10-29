@@ -62,6 +62,7 @@ class TaskModel extends VerySimpleModel {
                     'object_type' => "'T'",
                     'object_id' => 'Ticket.ticket_id',
                 ),
+                'list' => false,
                 'null' => true,
             ),
         ),

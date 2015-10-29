@@ -1,6 +1,8 @@
 <?php
 $error=$msg=$warn=null;
 
+$ticket = $task->ticket;
+
 if (!$task->checkStaffPerm($thisstaff))
      $warn.= __('You do not have access to this task');
 elseif ($task->isOverdue())
@@ -25,6 +27,11 @@ echo '<ul class="tabs" id="task-preview">';
 echo '
         <li class="active"><a href="#summary"
             ><i class="icon-list-alt"></i>&nbsp;'.__('Task Summary').'</a></li>';
+if ($ticket) {
+echo '
+        <li><a id="ticket_preview_tab" href="#ticket"
+            ><i class="icon-list-alt"></i>&nbsp;'.__('Ticket Summary').'</a></li>';
+}
 if ($task->getThread()->getNumCollaborators()) {
     echo sprintf('
         <li><a id="collab_tab" href="#collab"
@@ -92,6 +99,83 @@ echo '</div>';
 ?>
 <?php
 //TODO: add link to view if the user has permission
+?>
+<?php
+if ($ticket) {
+echo '<div class="hidden tab_content" id="ticket">';
+echo '<table border="0" cellspacing="" cellpadding="1" width="100%" class="ticket_info">';
+
+$ticket_state=sprintf('<span>%s</span>',ucfirst($ticket->getStatus()));
+if($ticket->isOpen()) {
+    if($ticket->isOverdue())
+        $ticket_state.=' &mdash; <span>'.__('Overdue').'</span>';
+    else
+        $ticket_state.=sprintf(' &mdash; <span>%s</span>',$ticket->getPriority());
+}
+
+echo sprintf('
+        <tr>
+            <th width="100">'.__('Ticket State').':</th>
+            <td>%s</td>
+        </tr>
+        <tr>
+            <th>'.__('Created').':</th>
+            <td>%s</td>
+        </tr>',$ticket_state,
+        Format::datetime($ticket->getCreateDate()));
+if($ticket->isClosed()) {
+    echo sprintf('
+            <tr>
+                <th>'.__('Closed').':</th>
+                <td>%s   <span class="faded">by %s</span></td>
+            </tr>',
+            Format::datetime($ticket->getCloseDate()),
+            ($staff?$staff->getName():'staff')
+            );
+} elseif($ticket->getEstDueDate()) {
+    echo sprintf('
+            <tr>
+                <th>'.__('Due Date').':</th>
+                <td>%s</td>
+            </tr>',
+            Format::datetime($ticket->getEstDueDate()));
+}
+echo '</table>';
+
+
+echo '<hr>
+    <table border="0" cellspacing="" cellpadding="1" width="100%" class="ticket_info">';
+if($ticket->isOpen()) {
+    echo sprintf('
+            <tr>
+                <th width="100">'.__('Assigned To').':</th>
+                <td>%s</td>
+            </tr>',$ticket->isAssigned()?implode('/', $ticket->getAssignees()):' <span class="faded">&mdash; '.__('Unassigned').' &mdash;</span>');
+}
+echo sprintf(
+    '
+        <tr>
+            <th>'.__('From').':</th>
+            <td><a href="users.php?id=%d" class="no-pjax">%s</a> <span class="faded">%s</span></td>
+        </tr>
+        <tr>
+            <th width="100">'.__('Department').':</th>
+            <td>%s</td>
+        </tr>
+        <tr>
+            <th>'.__('Help Topic').':</th>
+            <td>%s</td>
+        </tr>',
+    $ticket->getUserId(),
+    Format::htmlchars($ticket->getName()),
+    $ticket->getEmail(),
+    Format::htmlchars($ticket->getDeptName()),
+    Format::htmlchars($ticket->getHelpTopic()));
+
+echo '
+    </table>';
+echo '</div>'; // ticket preview content.
+}
 ?>
 <div class="hidden tab_content" id="collab">
     <table border="0" cellspacing="" cellpadding="1">

@@ -2082,7 +2082,7 @@ class SqlCompiler {
                 $filter[] = $this->compileQ(new Q($criteria), $model, $slot);
             }
             // Handle simple field = <value> constraints
-            else {
+            elseif ($field) {
                 list($field, $op) = $this->getField($field, $model);
                 if ($field instanceof SqlAggregate) {
                     // This constraint has to go in the HAVING clause

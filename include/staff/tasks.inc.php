@@ -130,7 +130,7 @@ $tasks->annotate(array(
 
 $tasks->values('id', 'number', 'created', 'staff_id', 'team_id',
         'staff__firstname', 'staff__lastname', 'team__name',
-        'dept__name', 'cdata__title', 'flags');
+        'dept__name', 'cdata__title', 'ticket__ticket_id', 'flags');
 // Apply requested quick filter
 
 $queue_sort_key = sprintf(':Q%s:%s:sort', ObjectModel::OBJECT_TYPE_TASK, $queue_name);
@@ -337,11 +337,22 @@ if ($thisstaff->hasPerm(Task::PERM_DELETE, false)) {
                 </td>
                 <?php } ?>
                 <td nowrap>
+                  <div>
                   <a class="preview"
                     href="tasks.php?id=<?php echo $T['id']; ?>"
                     data-preview="#tasks/<?php echo $T['id']; ?>/preview"
-                    ><?php echo $number; ?></a></td>
-                <td align="center" nowrap><?php echo
+                    ><?php echo $number; ?></a>
+                    <?php
+                    if ($T['ticket__ticket_id']) {
+                    ?>
+                         <span class="pull-right faded-more">
+                            <i class="icon-file-text"></i>
+                        </span>
+                    <?php
+                    } ?>
+                    </div>
+                    </td>
+                <td nowrap><?php echo
                 Format::datetime($T[$date_col ?: 'created']); ?></td>
                 <td><a <?php if ($flag) { ?> class="Icon <?php echo $flag; ?>Ticket" title="<?php echo ucfirst($flag); ?> Ticket" <?php } ?>
                     href="tasks.php?id=<?php echo $T['id']; ?>"><?php
