@@ -69,7 +69,7 @@ class TEA_EditThreadEntry extends ThreadEntryAction {
 
         $T = $this->entry->getThread()->getObject();
         // You can edit your own posts or posts by your department members
-        // if your a manager, or everyone's if your an admin
+        // if you're a manager, or everyone's if you have thread edit rights
         return $thisstaff && (
             $thisstaff->getId() == $this->entry->staff_id
             || ($T instanceof Ticket

@@ -7,20 +7,7 @@
 <?php
 $E = $entry;
 $i = 0;
-$omniscient = $thisstaff->hasPerm(ThreadEntry::PERM_EDIT);
-do {
-    $i++;
-    if (!$omniscient
-        // The current version is always visible
-        && $i > 1
-        // If you originally posted it, you can see all the edits
-        && $E->staff_id != $thisstaff->getId()
-        // You can see your own edits
-        && ($E->editor != $thisstaff->getId() || $E->editor_type != 'S')
-    ) {
-        // Skip edits made by other agents
-        continue;
-    } ?>
+do { ?>
 <dt>
     <a href="#"><i class="icon-copy"></i>
     <strong><?php if ($E->title)
