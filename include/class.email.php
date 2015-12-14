@@ -14,6 +14,7 @@
 include_once INCLUDE_DIR.'class.role.php';
 include_once(INCLUDE_DIR.'class.dept.php');
 include_once(INCLUDE_DIR.'class.mailfetch.php');
+include_once(INCLUDE_DIR.'class.service.php');
 
 class Email extends VerySimpleModel {
     static $meta = array(
@@ -442,6 +443,97 @@ class Email extends VerySimpleModel {
             $addresses[$id] = $email;
         }
         return $addresses;
+    }
+
+    static function fetch($id=0) {
+        $options = array('action' => 'fetch');
+        if ($id)
+            $options['id'] = $id;
+        try {
+
+            $srvmanager = GenericServiceManager::instance();
+            $srvmanager->register('EmailService', $options);
+            $srvmanager->init();
+            $srvmanager->start();
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+
+        return true;
+    }
+
+    static function monitor($options, $stdout=null) {
+
+        $MAXERRORS = 10; // Max errors before we start delayed fetch attempts
+        $TIMEOUT = 5; // Timeout in minutes after max errors is reached.
+
+
+        $stdout = $stdout ?: new OutputStream('php://output');
+
+
+        $emails = Email::objects()
+            ->filter(array(
+                        'mail_active' => 1,
+                        'mail_protocol' => 'IMAP',
+                        Q::any(array(
+                                'mail_errors__lte' => $MAXERRORS,
+                                'mail_lasterror__gt' =>
+                                    SqlFunction::NOW()->minus(SqlInterval::MINUTE($TIMEOUT))
+                                    )
+                            )
+                        )
+                    );
+
+        if (isset($options['id']))
+            $emails->filter(array('email_id' => $options['id']));
+
+        $sockets = $read = $write = $except = null;
+        $map = array();
+        foreach ($emails as $email) {
+            if (!($imap=IMAP::open($email->getMailAccountInfo()))
+                    || ($imap instanceof PEAR_Error)
+                    )
+                continue;
+            $stdout->write(sprintf("Monitoring ID#%d\n", $email->getId()));
+            //$imap->setDebug(true);
+            $res=$imap->idle();
+            $sockets[$email->getId()] = $imap->_socket->fp;
+            $map[$email->getId()] = $imap;
+        }
+
+        if (!$sockets)
+            throw new Exception('Unable to find email acconts to monitor');
+
+        // Idle waiting for mail to arrive
+        $idleStart = time();
+        $read = $sockets;
+        $x = $timeout = 0;
+        while (true) {
+            $x++;
+            $num = stream_select($read, $write, $except, 30, 0);
+            if ($num === false)
+                break;
+
+            $stdout->write('Stream select num '.$num);
+            foreach ($read as $k => $r) {
+                if (!($o = &$map[$k]) || ($o->wakeup() && $o->isIdling()))
+                    continue;
+
+                $stdout->write("Fetching #$k ");
+                Email::fetch($k);
+            }
+
+            $read = $sockets;
+            $stdout->write(sprintf("\nMinotoring %s email accounts\n", count($read)));
+            $timeout = ((time()- $idleStart) > ($TIMEOUT*60));
+            if ($x >1000  || $timeout)
+                break;
+        }
+
+        if (!$timeout)
+            throw new  Exception('Error occured');
+
+        return true;
     }
 }
 RolePermission::register(/* @trans */ 'Miscellaneous', Email::getPermissions());

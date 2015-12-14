@@ -23,7 +23,25 @@ class IMAP extends Net_IMAP {
     private $idling;
     private $maxIdleTime;
 
-    private $_blocking; //Should idle block?
+
+
+    // Trap the constructor to set stream context
+    function __construct() {
+
+        // SSL context options to turn of PHP 5.6+ strict checks
+        $options = array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true,
+                    ),
+                );
+
+        $this->setStreamContextOptions($options);
+        // Call the parent constructor and pass whatever was passed to us
+        call_user_func_array(array('parent', '__construct'),
+                func_get_args());
+    }
 
     /**
      * Uses the IMAP IDLE command (RFC 2177).
@@ -117,19 +135,25 @@ class IMAP extends Net_IMAP {
         }
 
         if ($this->idling && $this->isMailboxUpdated($lastline)) {
-
-            var_dump("YEES");
             $this->done();
         }
 
         return $lastline;
     }
 
+    public function isIdling() {
+        return ($this->idling);
+    }
 
     protected function isMailboxUpdated($lastline)
     {
-        return ((strpos($lastline, 'EXISTS') !== false) or
-                (strpos($lastline, 'EXPUNGE') !== false));
+        $keywords = array('EXISTS', 'RECENT', 'EXPUNGE');
+        foreach ($keywords as $k) {
+            if (stripos($lastline, $k) !== false)
+                return true;
+        }
+
+        return false;
     }
 
     protected function createMessage($msg)

@@ -115,9 +115,9 @@ class Misc {
             $time = self::user2gmtime($var);
         }
 
-        if (!isset($dbtz)) {
+        if (!isset($dbtz))
             $dbtz = new DateTimeZone($cfg->getDbTimezone());
-        }
+
         // UTC to db time
         $D = DateTime::createFromFormat('U', $time);
         return $time + $dbtz->getOffset($D);

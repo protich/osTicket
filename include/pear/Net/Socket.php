@@ -126,7 +126,8 @@ class Net_Socket extends PEAR
                   strstr($addr, '/') !== false) {
             $this->addr = $addr;
         } else {
-            $this->addr = @gethostbyname($addr);
+            // PHP 5.6 doesn't like IP addresses
+            $this->addr = $addr;
         }
 
         $this->port = $port % 65536;
@@ -163,7 +164,7 @@ class Net_Socket extends PEAR
 
                 $addr = $this->addr . ':' . $this->port;
                 $fp   = stream_socket_client($addr, $errno, $errstr,
-                                             $timeout, $flags, $context);
+                                             $timeout ?: 30, $flags, $context);
             } else {
                 $fp = @$openfunc($this->addr, $this->port, $errno,
                                  $errstr, $timeout, $context);
