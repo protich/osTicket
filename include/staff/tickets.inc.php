@@ -273,7 +273,7 @@ case 'number':
     break;
 
 case 'priority,created':
-    $tickets->order_by(($sort_dir ? '-' : '') . 'cdata__priority__priority_urgency');
+    $tickets->order_by(($sort_dir ? '-' : '') . 'cdata__:priority__priority_urgency');
     // Fall through to columns for `created`
 case 'created':
     $queue_columns['date']['heading'] = __('Date Created');
