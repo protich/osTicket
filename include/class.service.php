@@ -294,6 +294,11 @@ abstract class BaseServiceManager {
 	protected $name = 'osTicket Service';
     protected $description = 'osTicket Service Manager';
 
+    //options
+    private $options = array(
+            'debug' => false,
+            );
+
 	// CLI Process class
 	static protected $cli = 'CLIProcess';
 
@@ -309,7 +314,10 @@ abstract class BaseServiceManager {
 	// Default services supported -- more can be added via ::register();
 	static private $_registry = array();
 
-	function __construct() {
+	function __construct($options=array()) {
+
+        // Options
+        $this->options = array_merge($this->options, $options);
 
         // output streams
         $this->stdout = new OutputStream('php://output');
@@ -470,7 +478,12 @@ abstract class BaseServiceManager {
     }
 
 
-	public function log($text, $err = true) {
+	public function log($text, $err = false) {
+
+        // Errors override debug setting
+        if (!$err && !$this->options['debug'])
+            return;
+
         $text = sprintf("%s : %s\n", $this->getName(), $text);
         if ($err) {
             // XXX: Logging error_log and stdout
@@ -520,7 +533,7 @@ class GenericServiceManager extends BaseServiceManager {
         if (strcasecmp(substr(PHP_OS, 0, 3), 'WIN'))
             throw new Exception('Service only available in Windows platform');
 
-        static::$instance =  WindowsServiceManager::instance();
+        static::$instance =  WindowsServiceManager::instance($options);
 
 
         return static::$instance;
@@ -550,7 +563,7 @@ class WindowsServiceManager extends GenericServiceManager {
             throw new Exception('Windows Service Manager: Cannot load
                     php_com_dotnet.dll extension');
 
-        static::$instance = new static();
+        static::$instance = new static($options);
 
         return static::$instance;
     }
@@ -730,7 +743,7 @@ class Win32ServiceManager extends WindowsServiceManager {
         }
     }
 
-    static function instance() {
+    static function instance($options=array()) {
 
         if (isset(static::$instance))
             return static::$instance;
@@ -741,7 +754,7 @@ class Win32ServiceManager extends WindowsServiceManager {
             throw new Exception('Windows Service Manager: Cannot load
                     php_win32service.dll extension');
 
-        static::$instance = parent::instance();
+        static::$instance = parent::instance($options);
 
         return static::$instance;
     }
