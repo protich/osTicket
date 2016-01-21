@@ -29,9 +29,9 @@ abstract class CLIProcess {
 	abstract function terminate();
 
 	// Getters
-	function getPid() {
-		return $this->pid;
-	}
+    function getPid() {
+        return $this->pid;
+    }
 
 	function getStdOut() {
 		return $this->stdOut;
@@ -68,9 +68,8 @@ class WshShell extends CLIProcess {
 
 	// Exec
 	private function exec($script) {
-
-        $this->oExec = $this->wshShell->exec(sprintf('%s %s 2>&1',
-				$this->cmd, $script));
+        $cmd = sprintf('%s %s 2>&1', $this->cmd, $script);
+        $this->oExec = $this->wshShell->exec($cmd);
 
 		if (!$this->oExec || !$this->oExec->ProcessId)
 			return false;
@@ -81,6 +80,7 @@ class WshShell extends CLIProcess {
 
 		return $this->pid;
 	}
+
 	function run($script) {
 		return $this->exec($script);
 	}
@@ -143,7 +143,6 @@ abstract class SimpleService {
 
     abstract protected function getArgsStr();
 
-
 	function getName() {
 		return $this->name;
 	}
@@ -172,23 +171,17 @@ abstract class SimpleService {
         if ($this->isIdlieng()) {
             if ((time()- $this->idleTime) < $this->idleTimeout)
                 return true; // Leave me alone.
-
-            // Clear idle timestamp
-            $this->idleTime = 0;
         }
 
-        // Check last exit code.
+        $this->idleTime = time(); // Idleing for now.
+        // TODO: if we need to go idle differently based on prior exit codes.
         $code = $this->process ? $this->process->getExitCode() : null;
-        // Process is new or exited already
-        if ($code == null || $code === 0)
-            return $this->restart();
-
-        // TODO: if we need to go idle based on prior exit codes.
-        $this->idleTime = time(); //Idleing for now.
+        $this->log(sprintf('Process Status:  %s (%s)', $this->process->getStatus(), $code));
+        // Restart the process
+        $this->restart();
 
         return true;
     }
-
 
 	// Start the process
 	function start() {
@@ -202,13 +195,13 @@ abstract class SimpleService {
                 throw new Exception('failed to start');
 
 		} catch(Exception $ex) {
-            $this->manager->log(sprintf('%s failed to start (%s)',
+            $this->log(sprintf('%s failed to start (%s)',
                         $this->getName(), $ex->getMessage()));
 
 			return false;
 		}
 
-		$this->manager->log(sprintf('%s started with pid #%d',
+		$this->log(sprintf('%s started with pid #%d',
                     $this->getName(), $this->process->getPid()));
 
 		return true;
@@ -219,7 +212,7 @@ abstract class SimpleService {
         if ($this->process)
             $this->process->terminate();
 
-        $this->manager->log(sprintf('%s restarting...', $this->getName()));
+        $this->log(sprintf('%s restarting...', $this->getName()));
 
         return $this->start();
 
@@ -232,6 +225,10 @@ abstract class SimpleService {
 	function getStream() {
 		return $this->process->getStdOut();
 	}
+
+    function log($msg) {
+        return $this->manager->log(sprintf('%s - %s ', $this->getName(), $msg));
+    }
 }
 
 class EmailService extends SimpleService {
@@ -255,7 +252,7 @@ class EmailService extends SimpleService {
         if ($this->options['id'])
             $args .= ' id '.$this->options['id'];
 
-        $this->args = $args;
+        return $this->args = $args;
     }
 
 }
@@ -269,7 +266,7 @@ class CronService extends SimpleService {
     protected $module = 'cron';
 
     // Call interval in seconds
-    protected $idleTimeout = 30;
+    protected $idleTimeout = 60;
 
     //arguments
     private $args = null;
@@ -284,7 +281,7 @@ class CronService extends SimpleService {
         if (isset($this->options['type']))
             $type = $this->options['type'];
 
-        $this->args = sprintf('%s --interval=%d', $type, 0);
+        return $this->args = sprintf('%s --interval=%d', $type, 0);
     }
 
 }
@@ -476,7 +473,6 @@ abstract class BaseServiceManager {
         $this->stop();
         die();
     }
-
 
 	public function log($text, $err = false) {
 
