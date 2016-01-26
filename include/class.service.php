@@ -249,8 +249,8 @@ class EmailService extends SimpleService {
         if (isset($this->options['action']))
             $args = $this->options['action'];
 
-        if ($this->options['id'])
-            $args .= ' id '.$this->options['id'];
+        if ($this->options['id'] && is_numeric($this->options['id']))
+            $args .= ' --id='.$this->options['id'];
 
         return $this->args = $args;
     }

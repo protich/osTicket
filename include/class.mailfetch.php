@@ -204,7 +204,7 @@ class MailFetcher {
                     $s_filter = stream_filter_append($f, 'convert.base64-decode',STREAM_FILTER_WRITE);
                     if (!fwrite($f, $text))
                         throw new Exception();
-                    stream_filter_remove($s_filter); 
+                    stream_filter_remove($s_filter);
                     fclose($f);
                     if (!($f = fopen($temp, 'r')) || !($text = fread($f, filesize($temp))))
                         throw new Exception();
@@ -879,7 +879,7 @@ class MailFetcher {
 
        Static function called to initiate email polling
      */
-    function run() {
+    function run($options=array()) {
         global $ost;
 
         if(!$ost->getConfig()->isEmailPollingEnabled())
@@ -898,10 +898,17 @@ class MailFetcher {
         $TIMEOUT = 10; //Timeout in minutes after max errors is reached.
 
         $sql=' SELECT email_id, mail_errors FROM '.EMAIL_TABLE
-            .' WHERE mail_active=1 '
-            .'  AND (mail_errors<='.$MAXERRORS.' OR (TIME_TO_SEC(TIMEDIFF(NOW(), mail_lasterror))>'.($TIMEOUT*60).') )'
-            .'  AND (mail_lastfetch IS NULL OR TIME_TO_SEC(TIMEDIFF(NOW(), mail_lastfetch))>mail_fetchfreq*60)'
-            .' ORDER BY mail_lastfetch ASC';
+            .' WHERE mail_active=1 ';
+
+        if (isset($options['id'])) {
+            // Ignore fetch frequecy and errors on forced fetch
+            $sql .= ' AND email_id = '.db_input($options['id']);
+        } else {
+            $sql .= '  AND (mail_errors<='.$MAXERRORS.' OR (TIME_TO_SEC(TIMEDIFF(NOW(), mail_lasterror))>'.($TIMEOUT*60).') )'
+                  . '  AND (mail_lastfetch IS NULL OR TIME_TO_SEC(TIMEDIFF(NOW(), mail_lastfetch))>mail_fetchfreq*60) ';
+        }
+
+        $sql .= ' ORDER BY mail_lastfetch ASC';
 
         if (!($res=db_query($sql)) || !db_num_rows($res))
             return;  /* Failed query (get's logged) or nothing to do... */
