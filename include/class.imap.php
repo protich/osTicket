@@ -20,6 +20,8 @@ class IMAP extends Net_IMAP {
     const RESPONSE_TIMEOUT = 'IDLE_ABORTED';
     const RESPONSE_DIFER = 'IDLE_DIFER';
 
+    static private $idleFlags = array('EXISTS', 'RECENT', 'EXPUNGE');
+
     private $idling;
     private $maxIdleTime;
 
@@ -59,7 +61,6 @@ class IMAP extends Net_IMAP {
     {
         $this->_blocking = ($maxIdleTime); // Bocking if we have timeout
         $this->maxIdleTime = $maxIdleTime;
-        $this->_socket->setBlocking(false);
 
         while (true) {
             $res = $this->_idle();
@@ -75,23 +76,19 @@ class IMAP extends Net_IMAP {
 
     private function _idle()
     {
-        $this->idling = true;
-        $ret = $this->_genericCommand('IDLE');
 
+        $this->_socket->setBlocking(false);
+        $ret = $this->_genericCommand('IDLE');
         if ($ret instanceof PEAR_Error) {
             // this means that the socket is already disconnected
-            return $ret;
+            return false;
         }
 
-        if (strtoupper($ret['RESPONSE']['CODE']) != 'OK') {
-            // unknown response type
-            // probably we got disconnected before sending the DONE command
-            return new PEAR_Error($ret['RESPONSE']['CODE'] .
-                    ', ' . $ret['RESPONSE']['STR_CODE']);
-        }
+        // Read IDLE ACK (+ idling)
+        if (!($ln= $this->recvLn(10)) || !strrchr($ln, '+'))
+            return null;
 
-        if (isset($ret['PARSED'][0]['COMMAND']))
-            return $ret['PARSED'][0]['COMMAND'];
+        $this->idling = true;
 
         return true;
     }
@@ -109,34 +106,30 @@ class IMAP extends Net_IMAP {
     function _recvLn()
     {
 
-        if (!$this->idling) {
+        if (!$this->idling || !$this->maxIdleTime)
             return parent::_recvLn();
-        }
 
-        // Idling with no timeout  --  deffer read.
-        if (!$this->maxIdleTime)
-             return new PEAR_Error('123', 'Timeout required to idle');
+        return  $this->recvLn($this->maxIdleTime);
 
-        if ($this->_socket->select(NET_SOCKET_READ, $this->maxIdleTime)) {
+    }
+
+    function recvLn($timeout=20) {
+
+        if (!$timeout)
+            return parent::_recvLn();
+
+        // Timed blocking wait...
+        if ($this->_socket->select(NET_SOCKET_READ, $timeout))
             return $this->wakeup();
-        }
 
-        $this->done();
-
-        $this->lastline = $this->timeoutMessage();
-
-        return $this->lastline;
+        return null;
     }
 
     function wakeup() {
-        $lastline = parent::_recvLn();
-        if ($lastline instanceof PEAR_Error) {
-            return $this->onError($lastline);
-        }
 
-        if ($this->idling && $this->isMailboxUpdated($lastline)) {
-            $this->done();
-        }
+        $lastline = parent::_recvLn();
+        if ($lastline instanceof PEAR_Error)
+            return $this->onError($lastline);
 
         return $lastline;
     }
@@ -145,20 +138,21 @@ class IMAP extends Net_IMAP {
         return ($this->idling);
     }
 
-    protected function isMailboxUpdated($lastline)
-    {
-        $keywords = array('EXISTS', 'RECENT', 'EXPUNGE');
-        foreach ($keywords as $k) {
-            if (stripos($lastline, $k) !== false)
-                return true;
+    public function parseRecvLn($ln) {
+
+        if (!$ln)
+            return false;
+
+        foreach (self::$idleFlags as $flag) {
+            if (stripos($ln, $flag) !== false)
+                return $flag;
         }
 
-        return false;
+        return null;
     }
 
-    protected function createMessage($msg)
-    {
-        return '* ' . $msg . "\r\n";
+    protected function createMessage($msg) {
+        return sprintf("* %s\r\n", $msg);
     }
 
     protected function timeoutMessage() {
@@ -184,6 +178,15 @@ class IMAP extends Net_IMAP {
         /*
         throw new UnexpectedValueException($error->getMessage());
          */
+    }
+
+    function disconnect() {
+
+        $this->_socket->setBlocking(true);
+        if ($this->idling)
+            $this->done();
+
+        return parent::disconnect();
     }
 
     static function open($info) {

@@ -463,13 +463,17 @@ class Email extends VerySimpleModel {
     }
 
     static function monitor($options, $stdout=null) {
+        global $cfg;
 
-        $MAXERRORS = 10; // Max errors before we start delayed fetch attempts
-        $TIMEOUT = 5; // Timeout in minutes after max errors is reached.
+        if (!$cfg || !$cfg->isEmailPollingEnabled())
+            throw new Exception('Email fetching is not enabled!');
 
-
-        $stdout = $stdout ?: new OutputStream('php://output');
-
+        // Max errors before we start delayed fetch attempts
+        $MAXERRORS = 10;
+        // Timeout in minutes after max errors is reached.
+        $TIMEOUT = 5;
+        // How long to IDLE before recycling the connections
+        $IDLETIMEOUT = 10;
 
         $emails = Email::objects()
             ->filter(array(
@@ -487,48 +491,66 @@ class Email extends VerySimpleModel {
         if (isset($options['id']))
             $emails->filter(array('email_id' => $options['id']));
 
-        $sockets = $read = $write = $except = null;
-        $map = array();
+        // Stdout
+        $stdout = $stdout ?: new OutputStream('php://output');
+        // inits
+        $read = $write = $except = null;
+        $streams = $accounts = array();
         foreach ($emails as $email) {
-            if (!($imap=IMAP::open($email->getMailAccountInfo()))
-                    || ($imap instanceof PEAR_Error)
+            if (!($account=IMAP::open($email->getMailAccountInfo()))
+                    || ($account instanceof PEAR_Error)
+                    || !$account->idle()
                     )
                 continue;
             $stdout->write(sprintf("Monitoring ID#%d\n", $email->getId()));
-            //$imap->setDebug(true);
-            $res=$imap->idle();
-            $sockets[$email->getId()] = $imap->_socket->fp;
-            $map[$email->getId()] = $imap;
+            //$account->setDebug(true);
+            $streams[] = $account->_socket->fp;
+            $accounts[] = $account;
+            $emailIds[] = $email->getId();
         }
 
-        if (!$sockets)
+        if (!$streams)
             throw new Exception('Unable to find email acconts to monitor');
 
         // Idle waiting for mail to arrive
         $idleStart = time();
-        $read = $sockets;
         $x = $timeout = 0;
         while (true) {
             $x++;
+            $read = $streams;
+            $stdout->write(sprintf("\nMonitoring %d email accounts\n",
+                        count($streams)));
             $num = stream_select($read, $write, $except, 30, 0);
             if ($num === false)
-                break;
-
-            $stdout->write('Stream select num '.$num);
+                throw new  Exception('Idle Error: stream_select failed');
             foreach ($read as $k => $r) {
-                if (!($o = &$map[$k]) || ($o->wakeup() && $o->isIdling()))
+                if (!($acct = $accounts[$k]) || !($recvLn=$acct->wakeup()))
                     continue;
 
-                $stdout->write("Fetching #$k ");
-                Email::fetch($k);
+                $id = $emailIds[$k];
+                switch (true) {
+                case preg_match("/\* [1-9][0-9]* (EXISTS|RECENT) */im", $recvLn):
+                    $stdout->write(sprintf("Mailbox #%d: Got mail [%s]\n",
+                                $id, $recvLn));
+                    Email::fetch($id);
+                    break;
+                case preg_match("/\* [1-9][0-9]* EXPUNGE */im", $recvLn):
+                    $stdout->write(sprintf("Mailbox #%d: EXPUNGED [%s]\n",
+                                $id, $recvLn));
+                    break;
+                default:
+                    $stdout->write(sprintf("Mailbox #%d: [%s]\n",
+                                $id, $recvLn));
+                }
             }
 
-            $read = $sockets;
-            $stdout->write(sprintf("\nMinotoring %s email accounts\n", count($read)));
-            $timeout = ((time()- $idleStart) > ($TIMEOUT*60));
-            if ($x >1000  || $timeout)
+            $timeout = ((time()- $idleStart) > ($IDLETIMEOUT*60));
+            if ($timeout || $x > 10000)
                 break;
         }
+
+        foreach ($accounts as $account)
+            $account->disconnect();
 
         if (!$timeout)
             throw new  Exception('Error occured');
