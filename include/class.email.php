@@ -504,9 +504,11 @@ class Email extends VerySimpleModel {
                 continue;
             $stdout->write(sprintf("Monitoring ID#%d\n", $email->getId()));
             //$account->setDebug(true);
-            $streams[] = $account->_socket->fp;
-            $accounts[] = $account;
-            $emailIds[] = $email->getId();
+            stream_set_read_buffer($account->_socket->fp, 0);
+            $h = (int) $account->_socket->fp;
+            $streams[$h] = $account->_socket->fp;
+            $accounts[$h] = $account;
+            $emailIds[$h] = $email->getId();
         }
 
         if (!$streams)
@@ -523,19 +525,21 @@ class Email extends VerySimpleModel {
             $num = stream_select($read, $write, $except, 30, 0);
             if ($num === false)
                 throw new  Exception('Idle Error: stream_select failed');
+
             foreach ($read as $k => $r) {
-                if (!($acct = $accounts[$k]) || !($recvLn=$acct->wakeup()))
+                $h = (int) $r;
+                if (!($acct = $accounts[$h]) || !($recvLn=$acct->wakeup()))
                     continue;
 
-                $id = $emailIds[$k];
+                $id = $emailIds[$h];
                 switch (true) {
-                case preg_match("/\* [1-9][0-9]* (EXISTS|RECENT) */im", $recvLn):
+                case preg_match("/\* [1-9][0-9]* RECENT */im", $recvLn):
                     $stdout->write(sprintf("Mailbox #%d: Got mail [%s]\n",
                                 $id, $recvLn));
                     Email::fetch($id);
                     break;
-                case preg_match("/\* [1-9][0-9]* EXPUNGE */im", $recvLn):
-                    $stdout->write(sprintf("Mailbox #%d: EXPUNGED [%s]\n",
+                case preg_match("/\* [1-9][0-9]* (EXISTS|EXPUNGE) */im", $recvLn):
+                    $stdout->write(sprintf("Mailbox #%d: [%s]\n",
                                 $id, $recvLn));
                     break;
                 default:
