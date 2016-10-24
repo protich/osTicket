@@ -47,8 +47,10 @@ if($sort && $sortOptions[$sort])
     $order_by =$sortOptions[$sort];
 
 $order_by=$order_by ?: $sortOptions['date'];
-if($_REQUEST['order'] && $orderWays[strtoupper($_REQUEST['order'])])
-    $order=$orderWays[strtoupper($_REQUEST['order'])];
+if ($_REQUEST['order'] && $orderWays[strtoupper($_REQUEST['order'])])
+    $order = $orderWays[strtoupper($_REQUEST['order'])];
+else
+    $order = $orderWays['DESC'];
 
 $x=$sort.'_sort';
 $$x=' class="'.strtolower($_REQUEST['order'] ?: 'desc').'" ';
@@ -103,7 +105,7 @@ $tickets->distinct('ticket_id');
 
 TicketForm::ensureDynamicDataView();
 
-$total=$tickets->count();
+$total=$visibility->count();
 $page=($_GET['p'] && is_numeric($_GET['p']))?$_GET['p']:1;
 $pageNav=new Pagenate($total, $page, PAGE_LIMIT);
 $qstr = '&amp;'. Http::build_query($qs);
@@ -123,6 +125,7 @@ if($search)
 
 $negorder=$order=='-'?'ASC':'DESC'; //Negate the sorting
 
+$tickets->order_by($order.$order_by);
 $tickets->values(
     'ticket_id', 'number', 'created', 'isanswered', 'source', 'status_id',
     'status__state', 'status__name', 'cdata__subject', 'dept_id',
