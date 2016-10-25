@@ -361,7 +361,9 @@ class AttachmentFile extends VerySimpleModel {
         if (isset($file['encoding'])) {
             switch ($file['encoding']) {
             case 'base64':
-                $file['data'] = base64_decode($file['data']);
+                if (!($file['data'] = base64_decode($file['data'])))
+                    throw new FileUploadError(
+                    __('Poorly encoded base64 data'));
             }
         }
         if (isset($file['data'])) {

@@ -74,18 +74,13 @@ class TicketApiController extends ApiController {
         //Validate attachments: Do error checking... soft fail - set the error and pass on the request.
         if ($data['attachments'] && is_array($data['attachments'])) {
             foreach($data['attachments'] as &$file) {
-                if ($file['encoding'] && !strcasecmp($file['encoding'], 'base64')) {
-                    if(!($file['data'] = base64_decode($file['data'], true)))
-                        $file['error'] = sprintf(__('%s: Poorly encoded base64 data'),
-                            Format::htmlchars($file['name']));
-                }
                 // Validate and save immediately
                 try {
                     $F = $fileField->uploadAttachment($file);
                     $file['id'] = $F->getId();
                 }
                 catch (FileUploadError $ex) {
-                    $file['error'] = $file['name'] . ': ' . $ex->getMessage();
+                    $file['error'] = Format::htmlchars($file['name']) . ': ' . $ex->getMessage();
                 }
             }
             unset($file);
