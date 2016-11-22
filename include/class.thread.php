@@ -2404,18 +2404,13 @@ implements TemplateVariable {
     }
 
 
-    function getLastMessage($criteria=false) {
-        $entries = clone $this->getEntries();
-        $entries->filter(array(
-            'type' => MessageThreadEntry::ENTRY_TYPE
-        ));
 
-        if ($criteria)
-            $entries->filter($criteria);
+    function getLastMessage($criteria=array()) {
 
-        $entries->order_by('-id');
+        $criteria = array_merge($criteria ?: array(), 
+               array('type' => MessageThreadEntry::ENTRY_TYPE));
 
-        return $entries->first();
+        return $this->getEntry($criteria, '-id');
     }
 
     function getLastEmailMessage($criteria=array()) {
@@ -2426,6 +2421,17 @@ implements TemplateVariable {
 
         return $this->getLastMessage($criteria);
     }
+
+    function getFirstEmailMessage($criteria=array()) {
+
+        $criteria += array(
+                'type' => MessageThreadEntry::ENTRY_TYPE,
+                'email_info__headers__isnull' => false);
+
+        return $this->getEntry($criteria);
+    }
+
+
 
     function getLastEmailMessageByUser($user) {
 
@@ -2438,13 +2444,16 @@ implements TemplateVariable {
                 : null;
     }
 
-    function getEntry($criteria) {
+    function getEntry($criteria, $orderby=false) {
         // XXX: PUNT
         if (is_numeric($criteria))
             return parent::getEntry($criteria);
 
         $entries = clone $this->getEntries();
         $entries->filter($criteria);
+        if ($orderby)
+            $entries->order_by($orderby);
+
         return $entries->first();
     }
 

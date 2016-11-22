@@ -352,10 +352,30 @@ if($ticket->isOverdue())
                 <tr>
                     <th><?php echo __('Source'); ?>:</th>
                     <td><?php
-                        echo Format::htmlchars($ticket->getSource());
-
-                        if (!strcasecmp($ticket->getSource(), 'Web') && $ticket->getIP())
-                            echo '&nbsp;&nbsp; <span class="faded">('.Format::htmlchars($ticket->getIP()).')</span>';
+                        $ip ='';
+                        switch (strtolower($ticket->getSource())) {
+                        case 'email':
+                            $ft = $ticket->getThread()->getFirstEmailMessage();
+                            if ($ft) {
+                                $rurl=sprintf('#tickets/%d/thread/%d/emailrecipients?mode=preview',
+                                        $ticket->getId(), $ft->getId());
+                                echo sprintf('<a href="#" class="preview" data-preview="%s"
+                                        ><i class="icon-envelope"></i>
+                                        <span>%s</span></a>',
+                                        $rurl, _('Email'));
+                            } else {
+                                echo Format::htmlchars($ticket->getSource());
+                            }
+                            break;
+                        case 'web':
+                            echo Format::htmlchars($ticket->getSource());
+                            if ($ticket->getIP())
+                                echo sprintf('&nbsp;&nbsp;<span class="faded">(%s)</span>',
+                                        Format::htmlchars($ticket->getIP()));
+                            break;
+                        default:
+                            echo Format::htmlchars($ticket->getSource());
+                        }
                         ?>
                     </td>
                 </tr>

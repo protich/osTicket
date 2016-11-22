@@ -18,6 +18,55 @@
 **********************************************************************/
 include_once(INCLUDE_DIR.'class.thread.php');
 
+class TEA_ShowEmailRecipients extends ThreadEntryAction {
+    static $id = 'emailrecipients';
+    static $name = /* trans */ 'View Email Recipients';
+    static $icon = 'group';
+
+    function isVisible() {
+        global $thisstaff;
+
+        return ($thisstaff && $this->entry->getEmailHeader());
+
+    }
+
+    function getJsStub() {
+        return sprintf("$.dialog('%s');",
+            $this->getAjaxUrl()
+        );
+    }
+
+    function trigger() {
+        switch ($_SERVER['REQUEST_METHOD']) {
+        case 'GET':
+            return $this->trigger__get();
+        }
+    }
+
+    private function trigger__get() {
+        $hdr = Mail_parse::splitHeaders(
+                $this->entry->getEmailHeader(), true);
+
+        $recipients = array();
+        foreach (array('To', 'TO', 'Cc', 'CC', 'Bcc', 'BCC') as $k) {
+            if (isset($hdr[$k]) && $hdr[$k] &&
+                ($addresses=Mail_Parse::parseAddressList($hdr[$k]))) {
+                foreach ($addresses as $addr) {
+                    $email = sprintf('%s@%s', $addr->mailbox, $addr->host);
+                    $name = $addr->personal ?: '';
+                    $recipients[$k][] = sprintf('%s<%s>',
+                            (($name && strcasecmp($name, $email))? "$name ": ''),
+                            $email);
+                }
+            }
+        }
+
+        include STAFFINC_DIR . 'templates/thread-email-recipients.tmpl.php';
+    }
+}
+ThreadEntry::registerAction(/* trans */ 'E-Mail', 'TEA_ShowEmailRecipients');
+
+
 class TEA_ShowEmailHeaders extends ThreadEntryAction {
     static $id = 'view_headers';
     static $name = /* trans */ 'View Email Headers';
@@ -26,10 +75,10 @@ class TEA_ShowEmailHeaders extends ThreadEntryAction {
     function isVisible() {
         global $thisstaff;
 
-        if (!$this->entry->getEmailHeader())
+        if (!$thisstaff || !$this->entry->getEmailHeader())
             return false;
 
-        return $thisstaff && $thisstaff->isAdmin();
+        return $thisstaff->isAdmin();
     }
 
     function getJsStub() {

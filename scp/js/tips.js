@@ -236,13 +236,15 @@ jQuery(function() {
 
 
     // Tooltip preview
-    $(document).on('mouseover', '.preview', function(e) {
+    $(document).on('mouseover click', '.preview', function(e) {
         var elem = $(this);
-        if (!elem.attr('href'))
+        if (!elem.attr('href') || !elem.data('preview'))
             return;
+
+        if (elem.attr('href').length > 1 && e.type=='click')
+            return;
+
         var vars = elem.attr('href').split('=');
-        if (!elem.data('preview'))
-            return;
         e.preventDefault();
         var url = 'ajax.php/'+elem.data('preview').substr(1);
         // TODO - hash url to integer and use it as id.

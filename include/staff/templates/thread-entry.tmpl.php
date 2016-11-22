@@ -55,7 +55,17 @@ if ($user && $cfg->isAvatarsEnabled())
 <?php   }
         if ($entry->flags & ThreadEntry::FLAG_COLLABORATOR) { ?>
             <span class="label label-bare"><?php echo __('Collaborator'); ?></span>
-<?php   } ?>
+<?php   }
+        if ($entry->getEmailHeader()) { 
+	    $preview = sprintf('#tickets/%d/thread/%d/emailrecipients?mode=preview', 
+		$entry->getThread()->getObjectId(), 
+		$entry->getId());  ?>
+            <span class="label label-bare"><a 
+		href="#" class="preview" 
+		data-preview="<?php echo $preview; ?>">
+		<i class="icon-envelope"></i></a></span>
+<?php   }
+        ?>
         </span>
         </div>
 <?php
