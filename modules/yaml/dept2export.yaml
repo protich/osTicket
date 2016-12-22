@@ -1,0 +1,30 @@
+- null
+  name: Support
+  signature: Support Department
+  ispublic: true
+  group_membership: true
+- null
+  name: Sales
+  signature: Sales and Customer Retention
+  ispublic: true
+  group_membership: true
+- null
+  name: Maintenance
+  signature: Maintenance Department
+  ispublic: true
+  group_membership: false
+- null
+  name: New Addition
+  signature: New
+  ispublic: true
+  group_membership: false
+- null
+  name: Maintenance3
+  signature: Maintenance Department
+  ispublic: true
+  group_membership: false
+- null
+  name: BrandNew
+  signature: Support Department
+  ispublic: true
+  group_membership: true

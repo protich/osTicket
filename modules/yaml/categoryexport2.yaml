@@ -1,0 +1,19 @@
+---
+- null
+  category_id: 1
+  ispublic: true
+  name: Category 1
+  description: here is a category
+  notes: ""
+- null
+  category_id: 1
+  ispublic: true
+  name: Category 1
+  description: here is a category
+  notes: ""
+- null
+  category_id: 1
+  ispublic: true
+  name: Category 2
+  description: here is a category
+  notes: ""

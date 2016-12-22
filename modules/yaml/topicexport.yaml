@@ -1,0 +1,78 @@
+- null
+  #topic_id: 11
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 3
+  topic: Access Issue test
+  notes: >
+    Report an inability access a physical or
+    virtual asset
+- null
+  #topic_id: 2
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 1
+  topic: Feedback
+  notes: >
+    Tickets that primarily concern the sales
+    and billing departments
+- null
+  #topic_id: 1
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 2
+  topic: General Inquiry
+  notes: Questions about products or services
+- null
+  #topic_id: 10
+  isactive: true
+  ispublic: true
+  dept_id: 3
+  priority_id: 2
+  topic: Report a Problem
+  notes: >
+    Product, service, or equipment related
+    issues
+- null
+  #topic_id: 31
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 0
+  topic: test1
+  notes: null
+- null
+  #topic_id: 32
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 0
+  topic: test2
+  notes: null
+- null
+  #topic_id: 33
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 0
+  topic: test3
+  notes: null
+- null
+  #topic_id: 34
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 0
+  topic: test4 test
+  notes: null
+- null
+  #topic_id: 35
+  isactive: true
+  ispublic: true
+  dept_id: 0
+  priority_id: 0
+  topic: new topic 122016 v2
+  notes: null

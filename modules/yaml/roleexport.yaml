@@ -1,0 +1,21 @@
+---
+- null
+  flags: true
+  name: All Access2
+  notes: Role with unlimited access
+  permissions: '{"ticket.create":1,"ticket.edit":1,"ticket.assign":1,"ticket.transfer":1,"ticket.reply":1,"ticket.close":1,"ticket.delete":1,"thread.edit":1,"task.create":1,"task.edit":1,"task.assign":1,"task.transfer":1,"task.reply":1,"task.close":1,"task.delete":1,"canned.manage":1}'
+- null
+  flags: true
+  name: Expanded Access2
+  notes: Role with expanded access
+  permissions: '{"ticket.create":1,"ticket.edit":1,"ticket.assign":1,"ticket.transfer":1,"ticket.reply":1,"ticket.close":1,"task.create":1,"task.edit":1,"task.assign":1,"task.transfer":1,"task.reply":1,"task.close":1,"canned.manage":1}'
+- null
+  flags: true
+  name: Limited Access2
+  notes: Role with limited access
+  permissions: '{"ticket.create":1,"ticket.assign":1,"ticket.transfer":1,"task.assign":1,"task.transfer":1,"task.reply":1}'
+- null
+  flags: true
+  name: newrole4
+  notes: Simple role with no permissions
+  permissions: null

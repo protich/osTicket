@@ -1,0 +1,16 @@
+---
+- null
+  priority_id: 2
+  dept_id: 1
+  email: support@adrianeosticket.com
+  name: Support
+- null
+  priority_id: 2
+  dept_id: 1
+  email: alerts@adrianeosticket.com
+  name: osTicket Alerts
+- null
+  priority_id: 2
+  dept_id: 1
+  email: noreply4@adrianeosticket.com
+  name: No Reply 4
