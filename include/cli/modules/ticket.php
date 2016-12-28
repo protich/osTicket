@@ -13,7 +13,7 @@ class TicketManager extends Module {
             ),
         ),
     );
-
+	
 
     var $options = array(
         'file' => array('-f', '--file', 'metavar'=>'path',
@@ -151,7 +151,7 @@ class TicketManager extends Module {
 
 
             //ticket table
-            //for any related id's, look them up from imported data
+            //for any related id's, look them up from imported data.
             // $ticket_import[] = array('number' => $D['number'], 'userId' => $D['user_id'],
             // 'statusId' => $D['status_id'],'deptId'=> $D['dept_id'],
             // 'slaId'=> $D['sla_id'], 'topicId'=> $D['topic_id'],
