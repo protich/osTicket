@@ -492,16 +492,31 @@ implements TemplateVariable {
     }
 
     // Custom create called by installer/upgrader to load initial data
-    static function __create($ht, &$error=false) {
+    static function __create($ht, &$error=false, $fetch=false) {
+        //see if org exists 
+        if ($fetch && ($orgId=OrganizationManager::getIdByName($ht['name'])) || $ht['name'] == null)
+        {
+          return self::lookup($orgId);
+        }
+        else
+        {
+          $org = static::create($ht);
 
-        $org = static::create($ht);
-        // Add dynamic data (if any)
-        if ($ht['fields']) {
+          // Add dynamic data (if any)
+          if ($ht['fields'])
+          {
+              $org->save(true);
+              $org->addDynamicData($ht['fields']);
+          }
+          //otherwise create without dynamic fields
+          else
+          {
             $org->save(true);
-            $org->addDynamicData($ht['fields']);
+          }
+
+          return $org;
         }
 
-        return $org;
     }
 }
 
