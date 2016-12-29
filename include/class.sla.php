@@ -208,10 +208,20 @@ implements TemplateVariable {
         return $sla;
     }
 
-    static function __create($vars, &$errors=array()) {
-        $sla = self::create($vars);
-        $sla->save();
-        return $sla;
+    static function __create($vars, &$errors=array(), $fetch=false) {
+        //see if sla exists 
+        if ($fetch && ($slaId=SLA::getIdByName($vars['name'])))
+        {
+          return self::lookup($slaId);
+        }
+        //otherwise create new sla
+        else
+        {
+          $sla = self::create($vars);
+          $sla->save();
+          return $sla;
+        }
+
     }
 }
 ?>
