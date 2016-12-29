@@ -1280,21 +1280,29 @@ class DynamicFormEntry extends VerySimpleModel {
         return true;
     }
 
-    static function create($ht=false, $data=null) {
+    static function create($ht=false, $data=null, $migration=false) {
+
         $inst = new static($ht);
         $inst->set('created', new SqlFunction('NOW'));
         if ($data)
             $inst->setSource($data);
-        foreach ($inst->getDynamicFields() as $field) {
-            if (!($impl = $field->getImpl($field)))
-                continue;
-            if (!$impl->hasData() || !$impl->isStorable())
-                continue;
-            $a = new DynamicFormEntryAnswer(
-                array('field'=>$field, 'entry'=>$inst));
-            $a->field->setAnswer($a);
-            $inst->answers->add($a);
+
+        if(!$migration)
+        {
+          foreach ($inst->getDynamicFields() as $field) {
+              if (!($impl = $field->getImpl($field)))
+                  continue;
+              if (!$impl->hasData() || !$impl->isStorable())
+                  continue;
+
+              $a = new DynamicFormEntryAnswer(
+                  array('field'=>$field, 'entry'=>$inst));
+              $a->field->setAnswer($a);
+              $inst->answers->add($a);
+          }
         }
+
+
         return $inst;
     }
 }
