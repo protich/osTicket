@@ -324,7 +324,7 @@ class TicketManager extends Module {
             //     fwrite($fh, (Spyc::YAMLDump($clean)));
             //     fclose($fh);
             //   }
-            
+
             }
             else
             {
@@ -518,60 +518,15 @@ class TicketManager extends Module {
             'object_id'=>$ticket_id))
           ->values_flat('id');
 
-      //var_dump('counts is ' . count($row));
 
       if(count($row) != 0)
       {
         for ($i=0; $i<count($row); $i++)
         {
           $form_ids .= implode(',', $row[$i]) . ',';
-          //$form_ids = $row[$i];
-          //array_push($form_ids, $row[$i]);
-          //var_dump('all rows are ' . $form_ids);
         }
 
-      //   //parse form entry id
-      //   $entries = explode(",", $form_ids);
-       //
-      //   //var_dump('entry count ' . count($entries));
-       //
-      //   // if(count($entries) > 1)
-      //   // {
-      //   //   var_dump('greater');
-      //   // }
-      //   foreach ($entries as $F)
-      //   {
-      //     //var_dump('id is ' . $F);
-      //     if($F)
-      //     {
-      //       //var_dump('id is ' . $F);
-      //       //var_dump('form id is ' . self::getFormId($F));
-      //       //'entries' => array('id' => 23,'form_id' => 2)
-       //
-      //       //$form_ids = $F;
-      //       //$clean_entry .= ($F . ',');
-      //       //$clean_entry .= ('array(\'id\' => ' . $F . ',\'form_id\' => ' . self::getFormId($F) . '),');
-      //       $clean_entry .= (array('\'id\' => ' . $F . ',\'form_id\' => ' . self::getFormId($F) . '),'));
-       //
-      //       //$form_ids = array('\'id\' => ' . $F . ',\'form_id\' => ' . self::getFormId($F));
-      //       //$form_ids = ('array(\'id\' => ' . $F . ',\'form_id\' => ' . self::getFormId($F) . '),');
-       //
-      //       //var_dump('form ids count is ' . count($form_ids));
-      //       //var_dump('form ids is ' . $form_ids);
-       //
-       //
-      //       // foreach ($form_ids as $A)
-      //       // {
-      //       //   var_dump($A);
-      //       // }
-      //     }
-       //
-      //   }
-       //
-        }
-       //
-      //  return rtrim($clean_entry, ',');
-      //  return rtrim('. ' . $form_ids, ',');
+      }
       return rtrim($form_ids, ',');
 
     }
