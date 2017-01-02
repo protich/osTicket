@@ -612,39 +612,6 @@ class TicketManager extends Module {
 
     }
 
-    private function getUniqueFieldId($ticket_id)
-    {
-      $form_entry_id = self::getFormEntryId($ticket_id);
-
-      //parse form entry id
-      $entries = explode(",", $form_entry_id);
-
-
-      //pass entries in to get field id
-      foreach ($entries as $E)
-      {
-        $prev .= $E;
-        $row = DynamicFormEntryAnswer::objects()
-            ->filter(array(
-              'entry_id'=>$E))
-            ->values_flat('field_id');
-
-
-        //store unique field ids in a string
-        foreach ($row as $R)
-        {
-          if($prev != $E)
-          {
-            $field_ids .= implode(',', $R) . ',';
-          }
-
-        }
-       }
-
-       //return the field ids
-       return rtrim($field_ids, ',');
-
-    }
 
     private function getFieldValue($ticket_id)
     {
