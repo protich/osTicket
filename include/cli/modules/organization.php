@@ -62,7 +62,7 @@ class OrganizationManager extends Module {
             }
 
           }
-          elseif($options['yaml'])
+          elseif($options['csv'])
           {
             if (!$options['file'])
                 $this->fail('Import CSV file required!');
