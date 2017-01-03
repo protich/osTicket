@@ -1,15 +1,15 @@
 <?php
 
-class ThreadManager extends Module {
-    var $prologue = 'CLI thread manager';
+class ThreadEntryManager extends Module {
+    var $prologue = 'CLI thread entry manager';
 
     var $arguments = array(
         'action' => array(
             'help' => 'Action to be performed',
             'options' => array(
-                'import' => 'Import threads from yaml file',
-                'export' => 'Export threads from the system to CSV or yaml',
-                'list' => 'List threads based on search criteria',
+                'import' => 'Import thread entries from yaml file',
+                'export' => 'Export thread entries from the system to CSV or yaml',
+                'list' => 'List thread entries based on search criteria',
             ),
         ),
     );
@@ -65,14 +65,21 @@ class ThreadManager extends Module {
         case 'export':
             if ($options['yaml'])
             {
-              //get the threads
-              $threads = self::getQuerySet($options);
+              //get the thread entries
+              $thread_entries = self::getQuerySet($options);
 
               //format the array nicely
-              foreach ($threads as $thread)
+              foreach ($thread_entries as $thread_entry)
               {
-                $clean[] = array('object_id' => $thread->getObjectId(), 'object_type' => $thread->getObjectType(),
-                'extra' => $thread->get('extra'), 'lastresponse' => $thread->get('lastresponse'));
+                $clean[] = array('thread_id' => $thread_entry->getThreadId(), 'pid' => $thread_entry->getPid(),
+                'staff_id' => $thread_entry->getStaffId(),'user_id' => $thread_entry->getUserId(),
+                'type' => $thread_entry->getType(), 'flags' => $thread_entry->get('flags'),
+                'poster' => $thread_entry->getPoster(), 'editor' => $thread_entry->getEditor(),
+                'editor_type' => $thread_entry->get('editor_type'), 'source' => $thread_entry->getSource(),
+                'title' => $thread_entry->getTitle(), 'body' => $thread_entry->getBody(),
+                'format' => $thread_entry->get('format'), 'ip_address' => $thread_entry->get('ip_address'),
+                'created' => $thread_entry->get('created')
+                );
 
               }
 
@@ -80,9 +87,9 @@ class ThreadManager extends Module {
               //export yaml file
               echo Spyc::YAMLDump(array_values($clean), true, false, true);
 
-              // if(!file_exists('thread.yaml'))
+              // if(!file_exists('thread_entry.yaml'))
               // {
-              //   $fh = fopen('thread.yaml', 'w');
+              //   $fh = fopen('thread_entry.yaml', 'w');
               //   fwrite($fh, (Spyc::YAMLDump($clean)));
               //   fclose($fh);
               // }
@@ -94,21 +101,21 @@ class ThreadManager extends Module {
               if (!($this->stream = fopen($stream, 'c')))
                   $this->fail("Unable to open output file [{$options['file']}]");
 
-              fputcsv($this->stream, array('object_id', 'object_type', 'extra', 'lastresponse'));
-              foreach (Thread::objects() as $thread)
+              fputcsv($this->stream, array('thread_id', 'pid', 'title', 'body'));
+              foreach (ThreadEntry::objects() as $thread_entry)
                   fputcsv($this->stream,
-                          array((string) $thread->getObjectId(), $thread->getObjectType(), $thread->get('extra'), $thread->get('lastresponse')));
+                          array((string) $thread_entry->getThreadId(), $thread_entry->getPid(), $thread_entry->getTitle(), $thread_entry->getBody()));
             }
 
             break;
 
         case 'list':
-            $threads = $this->getQuerySet($options);
+            $thread_entries = $this->getQuerySet($options);
 
-            foreach ($threads as $T) {
+            foreach ($thread_entries as $T) {
                 $this->stdout->write(sprintf(
                     "%d %s <%s> %s\n",
-                    $T->getObjectId(), $T->getObjectType(), $T->get('extra'), $T->get('lastresponse')
+                    $T->getThreadId(), $T->getPid(), $T->getTitle(), $T->getBody()
                 ));
             }
 
@@ -122,42 +129,52 @@ class ThreadManager extends Module {
 
 
     function getQuerySet($options, $requireOne=false) {
-        $threads = Thread::objects();
+        $thread_entries = ThreadEntry::objects();
 
-        return $threads;
+        return $thread_entries;
     }
 
-    private function getIdByCombo($object_id, $object_type)
+    private function getIdByCombo($thread_id, $created)
     {
-      $row = DynamicFormEntry::objects()
+      $row = ThreadEntry::objects()
           ->filter(array(
-            'object_id'=>$object_id,
-            'object_type'=>$object_type))
+            'thread_id'=>$thread_id,
+            'created'=>$created))
           ->values_flat('id')
           ->first();
 
       return $row ? $row[0] : 0;
     }
 
+    static function create_thread_entry($vars=array())
+    {
+      $thread_entry = new ThreadEntry($vars);
+
+      $thread_entry->created = new SqlFunction('NOW');
+
+      //return the thread entry
+      return $thread_entry;
+
+    }
+
     static function __create($vars, &$error=false, $fetch=false) {
-        //see if thread exists
-        if ($fetch && ($threadId=self::getIdByCombo($vars['object_id'], $vars['object_type'])))
+        //see if thread entry exists
+        if ($fetch && ($threadId=self::getIdByCombo($vars['thread_id'], $vars['created'])))
         {
           var_dump('match');
-          return Thread::lookup($threadId);
+          return ThreadEntry::lookup($threadId);
         }
         else
         {
           var_dump('new');
-          $thread = Thread::create($vars);
-          $thread->save();
-          return $thread->id;
+          $thread_entry = self::create_thread_entry($vars);
+          $thread_entry->save();
+
+          return $thread_entry->id;
         }
-
-
     }
 
 
 }
-Module::register('thread', 'ThreadManager');
+Module::register('thread_entry', 'ThreadEntryManager');
 ?>
