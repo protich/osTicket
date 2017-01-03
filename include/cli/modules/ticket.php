@@ -1,5 +1,31 @@
 <?php
 
+
+//adriane
+class TicketPriority extends VerySimpleModel {
+    static $meta = array(
+        'table' => TICKET_PRIORITY_TABLE,
+        'pk' => array('priority_id'),
+        'joins' => array(
+            'cdata' => array(
+                'constraint' => array('priority_id' => 'TicketCData.priority'),
+            ),
+        ),
+    );
+
+
+    //adriane
+    static function getPriorityByName($name) {
+      var_dump('made it in');
+        $row = static::objects()
+            ->filter(array('priority'=>$name))
+            ->values_flat('priority_id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+}
+
 class TicketManager extends Module {
     var $prologue = 'CLI ticket manager';
 
@@ -276,7 +302,7 @@ class TicketManager extends Module {
                 'status_id' => $ticket->getStatusId(),
                 'dept_id'=> $ticket->getDeptId(), 'sla_id'=> $ticket->getSLAId(), 'topic_id'=> $ticket->getTopicID(),
                 'staff_id'=> $agentId,
-                'lock_id'=> $ticket->getLockId(), 'flags' => $ticket->flags, 'ip_address' => $ticket->getIP(),
+                'lock_id'=> $ticket->get('lock_id'), 'flags' => $ticket->flags, 'ip_address' => $ticket->getIP(),
                 'source' => $ticket->getSource(), 'source_extra' => $ticket->source_extra, 'duedate' => $ticket->getDueDate(),
                 'isoverdue' => boolval($ticket->isoverdue), 'isanswered' => boolval($ticket->isanswered),
                 'est_duedate' => $ticket->getEstDueDate(), 'reopened' => $ticket->getReopenDate(), 'closed' => $ticket->getCloseDate(),
@@ -336,7 +362,7 @@ class TicketManager extends Module {
               foreach (Ticket::objects() as $ticket)
                   fputcsv($this->stream,
                           array((string) $ticket->getNumber(), $ticket->getUserId(), $ticket->getStatusId(), $ticket->getDeptId(),
-                            $ticket->getSLAId(), $ticket->getTopicID(), $ticket->getLockId()
+                            $ticket->getSLAId(), $ticket->getTopicID(), $ticket->get('lock_id')
                          ));
             }
 
@@ -456,23 +482,8 @@ class TicketManager extends Module {
         else
         {
           var_dump('new ');
-
           $ticket = self::create_ticket($vars);
-
-          var_dump('error count 2 is ' . count($errors));
-
-          // Add dynamic data (if any)
-          if ($vars['fields'])
-          {
-              $ticket->save(true);
-              $ticket->addDynamicData($vars['fields']);
-          }
-          //otherwise create without dynamic fields
-          else
-          {
-            $ticket->save();
-          }
-
+          $ticket->save();
           return $ticket->ticket_id;
         }
 
@@ -645,6 +656,17 @@ class TicketManager extends Module {
 
     }
 
+    /*
+    //methods for related object exports:
+    Staff::__create
+    Topic::getNameBById
+    User::getIdByEmail
+
+
+    */
+
 }
+
+
 Module::register('ticket', 'TicketManager');
 ?>
