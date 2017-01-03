@@ -282,13 +282,22 @@ implements TemplateVariable {
         return $topic;
     }
 
-    static function __create($vars, &$errors) {
-        $topic = self::create($vars);
-        if (!isset($vars['dept_id']))
-            $vars['dept_id'] = 0;
-        $vars['id'] = $vars['topic_id'];
-        $topic->update($vars, $errors);
-        return $topic;
+    static function __create($vars, &$errors, $fetch=false)
+    {
+        //see if topic exists
+        if ($fetch && ($topicId=Topic::getIdByName($vars['topic'])))
+        {
+          return self::lookup($topicId);
+        }
+        else
+        {
+          $topic = self::create($vars);
+          if (!isset($vars['dept_id']))
+              $vars['dept_id'] = 0;
+          $vars['id'] = $vars['topic_id'];
+          $topic->update($vars, $errors);
+          return $topic;
+        }
     }
 
     static function getHelpTopics($publicOnly=false, $disabled=false, $localize=true) {
