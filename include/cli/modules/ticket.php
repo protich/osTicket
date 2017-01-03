@@ -88,11 +88,11 @@ class TicketManager extends Module {
 
             //user id
             $useremail = $D['user_email'];
-            $userId = User::getIdByEmail($D['user_email']);
+            $userId = self::getIdByEmail($D['user_email']);
             $D['user_id'] = $userId;
 
             //status
-            $statusId = TicketStatus::getIdByName($D['status_name']);
+            $statusId = self::getIdByName($D['status_name']);
             $D['status_id'] = $statusId;
 
             //department
@@ -239,11 +239,11 @@ class TicketManager extends Module {
 
                 //topic name
                 $topicId = $ticket->getTopicId();
-                $topicName = Topic::getNameById($topicId);
+                $topicName = self::getNameById($topicId);
 
                 //agent email
                 $agentId = $ticket->getStaffId();
-                $agentEmail = Staff::getEmailById($agentId);
+                $agentEmail = self::getEmailById($agentId);
 
                 if($agentId == null)
                 {
@@ -415,7 +415,7 @@ class TicketManager extends Module {
     }
 
     static function form_entry_create($vars, &$error=false, $fetch=false) {
-        var_dump('form');
+        //var_dump('form');
         //see if form entry exists
         if ($fetch && ($FeId=self::getIdByCombo($vars['form_id'], $vars['object_id'])) || $vars['form_id']  == null)
         {
@@ -471,7 +471,7 @@ class TicketManager extends Module {
 
     //adriane
     static function ticket_create($vars, &$errors=array(), $fetch=false) {
-      var_dump('ticket');
+      //var_dump('ticket');
         //see if ticket exists
         if ($fetch && ($ticketId=Ticket::getIdByNumber($vars['number'])))
         {
@@ -520,7 +520,6 @@ class TicketManager extends Module {
       return $row ? $row[0] : 0;
     }
 
-
     private function getFormEntryId($ticket_id)
     {
       $row = DynamicFormEntry::objects()
@@ -528,7 +527,6 @@ class TicketManager extends Module {
             'object_type'=>'T',
             'object_id'=>$ticket_id))
           ->values_flat('id');
-
 
       if(count($row) != 0)
       {
@@ -539,13 +537,10 @@ class TicketManager extends Module {
 
       }
       return rtrim($form_ids, ',');
-
     }
 
     private function getFormId($form_entry_id)
     {
-      //$form_entry_id = self::getFormEntryId($ticket_id);
-
       //parse form entry id
       $entries = explode(",", $form_entry_id);
 
@@ -641,7 +636,6 @@ class TicketManager extends Module {
             ->values_flat('value');
       }
 
-
       //store field vals in a string
       if(count($row) != 0)
       {
@@ -656,14 +650,46 @@ class TicketManager extends Module {
 
     }
 
-    /*
-    //methods for related object exports:
-    Staff::__create
-    Topic::getNameBById
-    User::getIdByEmail
+    //methods for related object
+    //staff
+    private function getEmailById($id) {
+        $list = Staff::objects()->filter(array(
+            'staff_id'=>$id,
+        ))->values_flat('email')->first();
 
+        if ($list)
+            return $list[0];
+    }
 
-    */
+    //topic
+    private function getNameById($id) {
+        $list = Topic::objects()->filter(array(
+            'topic_id'=>$id,
+        ))->values_flat('topic')->first();
+
+        if ($list)
+            return $list[0];
+    }
+
+    //user
+    static function getIdByEmail($email) {
+        $row = User::objects()
+            ->filter(array('emails__address'=>$email))
+            ->values_flat('id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //ticket status
+    static function getIdByName($name) {
+        $row = TicketStatus::objects()
+            ->filter(array('name'=>$name))
+            ->values_flat('id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
 
 }
 
