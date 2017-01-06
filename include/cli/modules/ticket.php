@@ -16,7 +16,7 @@ class TicketPriority extends VerySimpleModel {
 
     //adriane
     static function getPriorityByName($name) {
-      var_dump('made it in');
+      // var_dump('made it in');
         $row = static::objects()
             ->filter(array('priority'=>$name))
             ->values_flat('priority_id')
@@ -141,6 +141,37 @@ class TicketManager extends Module {
               $errors = array();
           }
 
+          //processing for threads
+          foreach ($data as $D)
+          {
+            $thread = $D['thread'];
+
+            foreach ($thread as $T)
+            {
+              $extra = $T['extra'];
+              $lastresponse = $T['lastresponse'];
+              $lastmessage = $T['lastmessage'];
+            }
+
+            //object_id
+            $object_id = Ticket::getIdByNumber($D['number']);
+
+            //form_entry table
+            $thread_import[] = array('object_id' => $object_id, 'object_type' => 'T',
+                'extra' => $extra, 'lastresponse' => 'T', 'lastmessage' => $lastmessage);
+
+          }
+
+          //import threads
+          $errors = array();
+          foreach ($thread_import as $o) {
+              if ('self::thread_create' && is_callable('self::thread_create'))
+                  @call_user_func_array('self::thread_create', array($o, &$errors, true));
+              // TODO: Add a warning to the success page for errors
+              //       found here
+              $errors = array();
+          }
+
           //processing for form entries
           foreach ($data as $D)
           {
@@ -221,6 +252,12 @@ class TicketManager extends Module {
               //get the tickets
               $tickets = self::getQuerySet($options);
 
+              //get the threads
+              $threads = self::getQuerySet_thread($options);
+
+              //get the thread entries
+              $thread_entries = self::getQuerySet_threadentry($options);
+
               //format the array nicely
               foreach ($tickets as $ticket)
               {
@@ -261,7 +298,11 @@ class TicketManager extends Module {
                   //field ids
                   $field_id = self::getFieldId($ticket->ticket_id);
                   //parse field ids
-                  $split_field_id = explode(",", $field_id);
+                  //$split_field_id = explode(",", $field_id);
+
+                  //parse as ints instead?
+                  $split_field_id = array_map('intval', explode(',', $field_id));
+
                   //set text for yaml
                   foreach ($split_field_id as $E)
                   {
@@ -293,8 +334,6 @@ class TicketManager extends Module {
                   }
                 }
 
-
-
                 //array to store the export
                 $clean[] = array(
                 //ticket specific fields
@@ -308,40 +347,74 @@ class TicketManager extends Module {
                 'est_duedate' => $ticket->getEstDueDate(), 'reopened' => $ticket->getReopenDate(), 'closed' => $ticket->getCloseDate(),
                 'lastupdate' => $ticket->getEffectiveDate(),
 
-
                 //related object fields
                 'status_name' => $ticket->getStatus(), 'priority' => $ticket->getPriority(), 'department_name' => $ticket->getDeptName(),
                 'user_name' => $ticket->getName(), 'user_email' => $userEmail, 'organization' => $orgname, 'sla_name' => $sla_prefix,
                 'topic_name' => $topicName, 'agent_email' =>  $agentEmail, 'grace_period' => 75, 'subject' => $ticket->getSubject(),
 
-                // 'form_entry' => array('form_entry_id' => self::getFormEntryId($ticket->ticket_id), 'form_id' => self::getFormId(self::getFormEntryId($ticket->ticket_id)),
-                //                 'form_entry_values' => array('field_id' => self::getFieldId($ticket->ticket_id),
-                //                                              'value' => self::getFieldValue($ticket->ticket_id))
-
                 'form_entry' => array('- form_entry_id' => self::getFormEntryId($ticket->ticket_id), '  form_id' => self::getFormId(self::getFormEntryId($ticket->ticket_id)),
-                                '  form_entry_values' => array(rtrim($field_id_clean, ', '), rtrim($value_clean, ', '))
-                )
-                //'entries' => self::getFormEntryId($ticket->ticket_id)
+                                // '  form_entry_values' => array(rtrim($field_id_clean, ', '), rtrim($value_clean, ', '))
+                              ),
 
-                //it's doing this:
-                //'entries' => "array('id' => 10,'form_id' => 7),array('id' => 9,'form_id' => 2)"
+                 'thread' => array('- object_id' => $ticket->getId(),
+                                   '  object_type' => $ticket->thread->object_type, '  extra' => $ticket->thread->extra,
+                                    '  lastresponse' => $ticket->getLastResponseDate(), '  lastmessage' => $ticket->getLastMessageDate())
+                );
 
-                //it should be doing this
-                // 'form_entry' => array('id' => 23,'form_id' => 2),
-                //                 array('id' => 9, 'form_id' => 7)
+                //array for thread import
+                foreach ($threads as $thread)
+                {
+                  if($thread->getObjectId() == $ticket->ticket_id && $thread->object_type == 'T')
+                  {
+                    $thread_clean[] = array('ticket_num' => $ticket->getNumber(), 'id' => $thread->id, 'object_id' => $thread->getObjectId(), 'object_type' => $thread->getObjectType(),
+                    'extra' => $thread->get('extra'), 'lastresponse' => $thread->get('lastresponse'),
+                    'lastmessage' => $thread->get('lastmessage'));
+                  }
+
+                }
+
+                //array for form import
 
 
+            }
 
-                // 'form_entry_id' => self::getFormEntryId($ticket->ticket_id),
-                //'form_id' => self::getFormId($ticket->ticket_id),
-                // 'field_id' => self::getFieldId($ticket->ticket_id),
-                // 'value' => self::getFieldValue($ticket->ticket_id)
-              );
+            //prepare thread entry yaml array
+            for ($i=0; $i <count($thread_clean); $i++)
+            {
+              //ticket number
+              $thread_entries_clean[] = array('- ticket' => $thread_clean[$i]['ticket_num']);
+              foreach ($thread_entries as $thread_entry)
+              {
 
-               }
+                //thread entries for ticket
+                if($thread_clean[$i]['object_type'] == 'T' && $thread_entry->thread_id == $thread_clean[$i]['id'])
+                {
+                  array_push($thread_entries_clean, array(
+                  '  - thread_id' => $thread_entry->getThreadId(), '    object_id' => $thread->object_id,  '    pid' => $thread_entry->getPid(),
+                  '    staff_id' => $thread_entry->getStaffId(),'    user_id' => $thread_entry->getUserId(),
+                  '    type' => $thread_entry->getType(), '    flags' => $thread_entry->get('flags'),
+                  '    poster' => $thread_entry->getPoster(), '    editor' => $thread_entry->getEditor(),
+                  '    editor_type' => $thread_entry->get('editor_type'), '    source' => $thread_entry->getSource(),
+                  '    title' => $thread_entry->getTitle(), '    body' => $thread_entry->getBody(),
+                  '    format' => $thread_entry->get('format'), '    ip_address' => $thread_entry->get('ip_address'),
+                  '    created' => $thread_entry->get('created')
+                  )
+                  );
+                }
+              }
+            }
 
-              //export yaml file
-              echo Spyc::YAMLDump(array_values($clean), true, false, true);
+              //export yaml files
+              //ticket, form entry, and thread
+              echo Spyc::YAMLDump($clean, true, false, true);
+              $separator = '----------thread entries-----------';
+              print ($separator);
+
+              //thread entries
+              echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
+
+              //form entries
+              //echo Spyc::YAMLDump($form_entries_clean, true, false, true);
 
             //export directly to yaml file
             //   if(!file_exists('ticket.yaml'))
@@ -393,6 +466,18 @@ class TicketManager extends Module {
         return $tickets;
     }
 
+    function getQuerySet_thread($options, $requireOne=false) {
+        $threads = Thread::objects();
+
+        return $threads;
+    }
+
+    function getQuerySet_threadentry($options, $requireOne=false) {
+        $thread_entries = ThreadEntry::objects();
+
+        return $thread_entries;
+    }
+
     //adriane
     static function create_ticket($vars=array())
     {
@@ -409,6 +494,12 @@ class TicketManager extends Module {
     {
       $FeVal = new DynamicFormEntryAnswer($vars);
 
+      //if the entry value is for priority, set value_id
+      if ($vars['field_id'] == 22)
+      {
+        $FeVal->value_id = TicketPriority::getPriorityByName($vars['value']);
+      }
+
       //return the form entry value
       return $FeVal;
 
@@ -424,8 +515,10 @@ class TicketManager extends Module {
         }
         else
         {
-          var_dump('new + ticket id is ' . $vars['object_id']);
+          //var_dump('new + ticket id is ' . $vars['object_id']);
           $Fe = DynamicFormEntry::create($vars, '', true);
+          $Fe->sort = 0;
+          $Fe->extra = '{"disable":[]}';
           $Fe->save();
           return $Fe->id;
         }
@@ -447,7 +540,7 @@ class TicketManager extends Module {
           }
           else
           {
-            var_dump('new ' . $vars['entry_id'] . ' ' .  $vars['field_id']);
+            //var_dump('new ' . $vars['entry_id'] . ' ' .  $vars['field_id']);
             $Fev = self::create_form_entry_val($vars);
             $Fev->save();
             return $Fev->entry_id;
@@ -475,14 +568,15 @@ class TicketManager extends Module {
         //see if ticket exists
         if ($fetch && ($ticketId=Ticket::getIdByNumber($vars['number'])))
         {
-          //var_dump('found match');
+          var_dump('found ticket match');
           return Ticket::lookup($ticketId);
         }
         //otherwise create new ticket
         else
         {
-          var_dump('new ');
+          var_dump('new ticket');
           $ticket = self::create_ticket($vars);
+          $ticket->loadDynamicData(true);
           $ticket->save();
           return $ticket->ticket_id;
         }
@@ -495,12 +589,42 @@ class TicketManager extends Module {
 
     }
 
+    static function thread_create($vars, &$error=false, $fetch=false) {
+        //see if thread exists
+        if ($fetch && ($threadId=self::getThreadIdByCombo($vars['object_id'], $vars['object_type'])))
+        {
+          var_dump('thread match');
+          return Thread::lookup($threadId);
+        }
+        else
+        {
+          var_dump('new thread');
+          $thread = Thread::create($vars);
+          $thread->save();
+          return $thread->id;
+        }
+
+
+    }
+
     private function getIdByCombo($form_id, $object_id)
     {
       $row = DynamicFormEntry::objects()
           ->filter(array(
             'form_id'=>$form_id,
             'object_id'=>$object_id))
+          ->values_flat('id')
+          ->first();
+
+      return $row ? $row[0] : 0;
+    }
+
+    private function getThreadIdByCombo($object_id, $object_type)
+    {
+      $row = DynamicFormEntry::objects()
+          ->filter(array(
+            'object_id'=>$object_id,
+            'object_type'=>$object_type))
           ->values_flat('id')
           ->first();
 
