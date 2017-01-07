@@ -15,8 +15,8 @@ class TicketPriority extends VerySimpleModel {
 
 
     //adriane
-    static function getPriorityByName($name) {
-      // var_dump('made it in');
+    function getPriorityByName($name) {
+      var_dump('made it in');
         $row = static::objects()
             ->filter(array('priority'=>$name))
             ->values_flat('priority_id')
@@ -202,47 +202,6 @@ class TicketManager extends Module {
               $errors = array();
           }
 
-          // //processing for form entry values
-          foreach ($data as $D)
-          {
-             // //pull out individual form entries
-             $form_entry = $D['form_entry'];
-             foreach ($form_entry as $T)
-             {
-               if($T['form_id'] != null)
-               {
-                 $form_id = $T['form_id'];
-                 //used to get entry_id
-                 $object_id = Ticket::getIdByNumber($D['number']);
-               }
-
-               $form_entry_vals = $T['form_entry_values'];
-             }
-
-             //pull out individual form entry values
-             foreach ($form_entry_vals as $V)
-             {
-               if($V['field_id'] != null)
-               {
-                 //form_entry_values
-                 $form_entry_values_import[] = array('entry_id' => self::getIdByCombo($form_id, $object_id),
-                    'field_id' => $V['field_id'], 'value' => $V['value']);
-               }
-
-             }
-
-          }
-
-          //import form_entry_values
-          $errors = array();
-          foreach ($form_entry_values_import as $o)
-          {
-              if ('self::form_entry_val_create' && is_callable('self::form_entry_val_create'))
-                  @call_user_func_array('self::form_entry_val_create', array($o, &$errors, true));
-              // TODO: Add a warning to the success page for errors
-              //       found here
-              $errors = array();
-          }
 
             break;
 
@@ -251,6 +210,12 @@ class TicketManager extends Module {
             {
               //get the tickets
               $tickets = self::getQuerySet($options);
+
+              //get form entries
+              $form_entries = self::getQuerySet_formentry($options);
+
+              //get form entry values
+              $form_entry_vals = self::getQuerySet_formentry_vals($options);
 
               //get the threads
               $threads = self::getQuerySet_thread($options);
@@ -287,53 +252,6 @@ class TicketManager extends Module {
                   $agentId = 0;
                 }
 
-                //get count of form entry vals per form entry
-                $entry_id = self::getFVEntryId($ticket->ticket_id);
-                $entries_split = explode(",", $entry_id);
-
-                //store form entry vals into one line
-                for ($i=0; $i < count($entries_split); $i++)
-                {
-                  $field_id_clean = '';
-                  //field ids
-                  $field_id = self::getFieldId($ticket->ticket_id);
-                  //parse field ids
-                  //$split_field_id = explode(",", $field_id);
-
-                  //parse as ints instead?
-                  $split_field_id = array_map('intval', explode(',', $field_id));
-
-                  //set text for yaml
-                  foreach ($split_field_id as $E)
-                  {
-                    //var_dump('\'field_id\' => ' .  $E);
-                    $field_id_clean .= '\'field_id\' => ' .  $E . ', ';
-                    //var_dump($field_id_clean);
-                  }
-
-                  //values
-                  $value_clean = '';
-                  $value = self::getFieldValue($ticket->ticket_id);
-                  //parse values
-                  $split_value = explode(",", $value);
-                  //var_dump('count split vals ' . count($split_value));
-                  //set text for yaml
-                  foreach ($split_value as $S)
-                  {
-                    if($S == null || $S == '')
-                    {
-                      //var_dump('its null');
-                      $S = 'null';
-                    }
-                    else
-                    {
-                      //var_dump($S);
-                    }
-                    //var_dump('\'value\' => ' .  $S);
-                    $value_clean .= '\'value\' => ' .  $S . ', ';
-                  }
-                }
-
                 //array to store the export
                 $clean[] = array(
                 //ticket specific fields
@@ -353,7 +271,6 @@ class TicketManager extends Module {
                 'topic_name' => $topicName, 'agent_email' =>  $agentEmail, 'grace_period' => 75, 'subject' => $ticket->getSubject(),
 
                 'form_entry' => array('- form_entry_id' => self::getFormEntryId($ticket->ticket_id), '  form_id' => self::getFormId(self::getFormEntryId($ticket->ticket_id)),
-                                // '  form_entry_values' => array(rtrim($field_id_clean, ', '), rtrim($value_clean, ', '))
                               ),
 
                  'thread' => array('- object_id' => $ticket->getId(),
@@ -374,15 +291,23 @@ class TicketManager extends Module {
                 }
 
                 //array for form import
+                foreach ($form_entries as $form_entry)
+                {
+                  if($form_entry->object_id == $ticket->ticket_id && $form_entry->object_type == 'T')
+                  {
+                    $form_entry_clean[] = array('form_entry_id' => $form_entry->id, 'form_id' => $form_entry->form_id,
+                      'object_type' => 'T', 'sort' => 0, 'extra' => '{"disable":[]}'
+                    );
+                  }
+                }
 
-
-            }
+            } //end data foreach
 
             //prepare thread entry yaml array
             for ($i=0; $i <count($thread_clean); $i++)
             {
               //ticket number
-              $thread_entries_clean[] = array('- ticket' => $thread_clean[$i]['ticket_num']);
+              $thread_entries_clean[] = array('- ticket' => $thread_clean[$i]['ticket_num'], '  thread_entry' => '');
               foreach ($thread_entries as $thread_entry)
               {
 
@@ -390,14 +315,33 @@ class TicketManager extends Module {
                 if($thread_clean[$i]['object_type'] == 'T' && $thread_entry->thread_id == $thread_clean[$i]['id'])
                 {
                   array_push($thread_entries_clean, array(
-                  '  - thread_id' => $thread_entry->getThreadId(), '    object_id' => $thread->object_id,  '    pid' => $thread_entry->getPid(),
-                  '    staff_id' => $thread_entry->getStaffId(),'    user_id' => $thread_entry->getUserId(),
-                  '    type' => $thread_entry->getType(), '    flags' => $thread_entry->get('flags'),
-                  '    poster' => $thread_entry->getPoster(), '    editor' => $thread_entry->getEditor(),
-                  '    editor_type' => $thread_entry->get('editor_type'), '    source' => $thread_entry->getSource(),
-                  '    title' => $thread_entry->getTitle(), '    body' => $thread_entry->getBody(),
-                  '    format' => $thread_entry->get('format'), '    ip_address' => $thread_entry->get('ip_address'),
-                  '    created' => $thread_entry->get('created')
+                  '    - thread_id' => $thread_entry->getThreadId(), '      object_id' => $thread->object_id,  '      pid' => $thread_entry->getPid(),
+                  '      staff_id' => $thread_entry->getStaffId(),'      user_id' => $thread_entry->getUserId(),
+                  '      type' => $thread_entry->getType(), '      flags' => $thread_entry->get('flags'),
+                  '      poster' => $thread_entry->getPoster(), '      editor' => $thread_entry->getEditor(),
+                  '      editor_type' => $thread_entry->get('editor_type'), '      source' => $thread_entry->getSource(),
+                  '      title' => $thread_entry->getTitle(), '      body' => $thread_entry->getBody(),
+                  '      format' => $thread_entry->get('format'), '      ip_address' => $thread_entry->get('ip_address'),
+                  '      created' => $thread_entry->get('created')
+                  )
+                  );
+                }
+              }
+            }
+
+            //prepare form entry vals for yaml file
+            for ($i=0; $i <count($form_entry_clean); $i++)
+            {
+              //form entry id
+              $form_entry_vals_clean[] = array('- entry_id' => $form_entry_clean[$i]['form_entry_id'], '  form_entry_values' => '');
+              foreach ($form_entry_vals as $form_entry_val)
+              {
+                //var_dump('object type ' . $form_entry_clean[$i]['object_type'] . ' id ' . $form_entry_clean[$i]['form_entry_id']);
+                //form entry values for ticket
+                if($form_entry_clean[$i]['object_type'] == 'T' && $form_entry_val->entry_id == $form_entry_clean[$i]['form_entry_id'])
+                {
+                  array_push($form_entry_vals_clean, array(
+                  '    - field_id' => $form_entry_val->field_id, '      value' => $form_entry_val->value
                   )
                   );
                 }
@@ -406,15 +350,16 @@ class TicketManager extends Module {
 
               //export yaml files
               //ticket, form entry, and thread
-              echo Spyc::YAMLDump($clean, true, false, true);
-              $separator = '----------thread entries-----------';
-              print ($separator);
+              // echo Spyc::YAMLDump($clean, true, false, true);
+              // $separator = '----------thread entries-----------';
+              // print ($separator);
+              //
+              // //thread entries
+              // echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
 
-              //thread entries
-              echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
-
-              //form entries
-              //echo Spyc::YAMLDump($form_entries_clean, true, false, true);
+              // $separator = '----------form entry values-----------';
+              //form entry values
+              echo Spyc::YAMLDump($form_entry_vals_clean, true, false, true);
 
             //export directly to yaml file
             //   if(!file_exists('ticket.yaml'))
@@ -459,23 +404,39 @@ class TicketManager extends Module {
         @fclose($this->stream);
     }
 
-
+    //return tickets
     function getQuerySet($options, $requireOne=false) {
         $tickets = Ticket::objects();
 
         return $tickets;
     }
 
+    //return threads
     function getQuerySet_thread($options, $requireOne=false) {
         $threads = Thread::objects();
 
         return $threads;
     }
 
+    //return thread entries
     function getQuerySet_threadentry($options, $requireOne=false) {
         $thread_entries = ThreadEntry::objects();
 
         return $thread_entries;
+    }
+
+    //return form entries
+    function getQuerySet_formentry($options, $requireOne=false) {
+        $form_entries = DynamicFormEntry::objects();
+
+        return $form_entries;
+    }
+
+    //return form entries
+    function getQuerySet_formentry_vals($options, $requireOne=false) {
+        $form_entry_val = DynamicFormEntryAnswer::objects();
+
+        return $form_entry_val;
     }
 
     //adriane
@@ -487,21 +448,6 @@ class TicketManager extends Module {
 
       //return the ticket
       return $ticket;
-
-    }
-
-    static function create_form_entry_val($vars=array())
-    {
-      $FeVal = new DynamicFormEntryAnswer($vars);
-
-      //if the entry value is for priority, set value_id
-      if ($vars['field_id'] == 22)
-      {
-        $FeVal->value_id = TicketPriority::getPriorityByName($vars['value']);
-      }
-
-      //return the form entry value
-      return $FeVal;
 
     }
 
@@ -528,39 +474,6 @@ class TicketManager extends Module {
 
       }
 
-      static function form_entry_val_create($vars, &$error=false, $fetch=false)
-      {
-
-          $FevVal = self::getValIdByCombo($vars['entry_id'], $vars['field_id'], $vars['value']);
-          //see if form entry val exists
-          if ($fetch && ($FevVal != '0'))
-          {
-            //var_dump('match');
-            return DynamicFormEntryAnswer::lookup($FevVal);
-          }
-          else
-          {
-            //var_dump('new ' . $vars['entry_id'] . ' ' .  $vars['field_id']);
-            $Fev = self::create_form_entry_val($vars);
-            $Fev->save();
-            return $Fev->entry_id;
-          }
-
-
-
-          //var_dump('youre passing in ' . $vars['entry_id'] . ', ' . $vars['field_id'] . ', and ' .  $vars['value']);
-          //var_dump('val is ' . self::getValIdByCombo($vars['entry_id'], $vars['field_id'], $vars['value']));
-          // $FevVal = self::getValIdByCombo($vars['entry_id'], $vars['field_id'], $vars['value']);
-          // if($FevVal == '0')
-          // {
-          //   var_dump('its 0');
-          //
-          // }
-          // else
-          // {
-          //   var_dump('its valid');
-          // }
-      }
 
     //adriane
     static function ticket_create($vars, &$errors=array(), $fetch=false) {
@@ -621,7 +534,7 @@ class TicketManager extends Module {
 
     private function getThreadIdByCombo($object_id, $object_type)
     {
-      $row = DynamicFormEntry::objects()
+      $row = Thread::objects()
           ->filter(array(
             'object_id'=>$object_id,
             'object_type'=>$object_type))
@@ -679,98 +592,6 @@ class TicketManager extends Module {
       }
 
        return $row ? $row[0] : 0;
-
-    }
-
-    private function getFieldId($ticket_id)
-    {
-      $form_entry_id = self::getFormEntryId($ticket_id);
-
-      //parse form entry id
-      $entries = explode(",", $form_entry_id);
-
-
-      //pass entries in to get field id
-      foreach ($entries as $E)
-      {
-        //var_dump('passing in ' . $E);
-        $prev .= $E;
-        $row = DynamicFormEntryAnswer::objects()
-            ->filter(array(
-              'entry_id'=>$E))
-            ->values_flat('field_id');
-
-        //store field ids in a string
-        foreach ($row as $R)
-        {
-          $field_ids .= implode(',', $R) . ',';
-        }
-       }
-
-       //return the field ids
-       return rtrim($field_ids, ',');
-
-    }
-
-    private function getFVEntryId($ticket_id)
-    {
-      $form_entry_id = self::getFormEntryId($ticket_id);
-
-      //parse form entry id
-      $entries = explode(",", $form_entry_id);
-
-
-      //pass entries in to get field id
-      foreach ($entries as $E)
-      {
-        //var_dump('passing in ' . $E);
-        $prev .= $E;
-        $row = DynamicFormEntryAnswer::objects()
-            ->filter(array(
-              'entry_id'=>$E))
-            ->values_flat('entry_id');
-
-        //store field ids in a string
-        foreach ($row as $R)
-        {
-          $field_ids .= implode(',', $R) . ',';
-        }
-       }
-
-       //return the field ids
-       return rtrim($field_ids, ',');
-
-    }
-
-
-    private function getFieldValue($ticket_id)
-    {
-      $form_entry_id = self::getFormEntryId($ticket_id);
-
-      //parse form entry id
-      $entries = explode(",", $form_entry_id);
-
-      //pass entries in to get field value
-      foreach ($entries as $E)
-      {
-        //var_dump('passing in ' . $E);
-        $row = DynamicFormEntryAnswer::objects()
-            ->filter(array(
-              'entry_id'=>$E))
-            ->values_flat('value');
-      }
-
-      //store field vals in a string
-      if(count($row) != 0)
-      {
-        for ($i=0; $i<count($row); $i++)
-        {
-            $field_vals .= implode(',', $row[$i]) . ',';
-        }
-       }
-
-       //return the field vals
-       return rtrim($field_vals, ',');
 
     }
 
