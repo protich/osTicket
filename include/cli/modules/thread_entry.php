@@ -49,9 +49,31 @@ class ThreadEntryManager extends Module {
           //place file into array
           $data = YamlDataParser::load($options['file']);
 
+          //processing for thread entries
+          foreach ($data as $D)
+          {
+            $ticket = $D['ticket'];
+            $thread_entry = $D['thread_entry'];
+            foreach ($thread_entry as $te)
+            {
+              $ticket_id = Ticket::getIdByNumber($ticket);
+              $thread_id = self::getThreadIdByCombo($ticket_id, 'T');
+
+              $thread_entry_import[] = array('pid' => $te['pid'], 'thread_id' => $thread_id,
+                'staff_id' => $te['staff_id'], 'user_id' => $te['user_id'], 'type' => $te['type'],
+                'flags' => $te['flags'], 'poster' => $te['poster'], 'editor' => $te['editor'],
+                'editor_type' => $te['editor_type'], 'source' => $te['source'], 'title' => $te['title'],
+                'body' => $te['body'], 'format' => $te['format'], 'ip_address' => $te['ip_address'],
+                'created' => $te['created']);
+            }
+
+          }
+
+
+
           //create threads with a unique name as a new record
           $errors = array();
-          foreach ($data as $o) {
+          foreach ($thread_entry_import as $o) {
               if ('self::__create' && is_callable('self::__create'))
                   @call_user_func_array('self::__create', array($o, &$errors, true));
               // TODO: Add a warning to the success page for errors
@@ -146,6 +168,18 @@ class ThreadEntryManager extends Module {
       return $row ? $row[0] : 0;
     }
 
+    private function getThreadIdByCombo($object_id, $object_type)
+    {
+      $row = Thread::objects()
+          ->filter(array(
+            'object_id'=>$object_id,
+            'object_type'=>$object_type))
+          ->values_flat('id')
+          ->first();
+
+      return $row ? $row[0] : 0;
+    }
+
     static function create_thread_entry($vars=array())
     {
       $thread_entry = new ThreadEntry($vars);
@@ -172,6 +206,7 @@ class ThreadEntryManager extends Module {
 
           return $thread_entry->id;
         }
+
     }
 
 
