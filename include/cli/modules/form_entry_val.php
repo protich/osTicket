@@ -1,5 +1,30 @@
 <?php
 
+//adriane
+class TicketPriority extends VerySimpleModel {
+    static $meta = array(
+        'table' => TICKET_PRIORITY_TABLE,
+        'pk' => array('priority_id'),
+        'joins' => array(
+            'cdata' => array(
+                'constraint' => array('priority_id' => 'TicketCData.priority'),
+            ),
+        ),
+    );
+
+
+    //adriane
+    function getPriorityByName($name) {
+      var_dump('made it in');
+        $row = static::objects()
+            ->filter(array('priority'=>$name))
+            ->values_flat('priority_id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+}
+
 class FormEntryValManager extends Module {
     var $prologue = 'CLI Form Entry manager';
 
@@ -51,9 +76,22 @@ class FormEntryValManager extends Module {
           //place file into array
           $data = YamlDataParser::load($options['file']);
 
-          //create emails with a unique name as a new record
+          //processing for form entry values
+          foreach ($data as $D)
+          {
+            $entry_id = $D['entry_id'];
+            $form_entry_values = $D['form_entry_values'];
+
+            foreach ($form_entry_values as $form_entry_value)
+            {
+              $form_entry_val_import[] = array('entry_id' => $entry_id, 'field_id' => $form_entry_value['field_id'], 'value' => $form_entry_value['value']);
+            }
+
+          }
+
+          //import form entry values
           $errors = array();
-          foreach ($data as $o) {
+          foreach ($form_entry_val_import as $o) {
               if ('self::create' && is_callable('self::create'))
                   @call_user_func_array('self::create', array($o, &$errors, true));
               // TODO: Add a warning to the success page for errors
@@ -128,9 +166,29 @@ class FormEntryValManager extends Module {
         return $form_entry;
     }
 
-    static function create($vars, &$error=false, $fetch=false) {
-        //see if staff exists
-        if ($fetch && ($FevVal=self::getIdByCombo($vars['entry_id'], $vars['field_id'], $vars['value'])))
+    static function create_form_entry_val($vars=array())
+    {
+      $FeVal = new DynamicFormEntryAnswer($vars);
+
+      //if the entry value is for priority, set value_id
+      if ($vars['field_id'] == 22)
+      {
+        var_dump('passing in ' . $vars['value']);
+        $FeVal->value_id = TicketPriority::getPriorityByName($vars['value']);
+        var_dump('val id ' . $FeVal->value_id);
+      }
+
+      //return the form entry value
+      return $FeVal;
+
+    }
+
+    static function create($vars, &$error=false, $fetch=false)
+    {
+
+        $FevVal = self::getIdByCombo($vars['entry_id'], $vars['field_id'], $vars['value']);
+        //see if form entry val exists
+        if ($fetch && ($FevVal != '0'))
         {
           var_dump('match');
           return DynamicFormEntryAnswer::lookup($FevVal);
@@ -138,13 +196,10 @@ class FormEntryValManager extends Module {
         else
         {
           var_dump('new ' . $vars['entry_id'] . ' ' .  $vars['field_id']);
-          // $Fev = DynamicFormEntryAnswer::create($vars);
-          // $Fev->save();
-          // return $Fev;
+          $Fev = self::create_form_entry_val($vars);
+          $Fev->save();
+          return $Fev->entry_id;
         }
-
-        // var_dump('youre passing in ' . $vars['entry_id'] . ' ' .  $vars['field_id']);
-        // var_dump('entry id is ' . self::getIdByCombo($vars['entry_id'], $vars['field_id']));
 
     }
 
