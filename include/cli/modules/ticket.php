@@ -348,16 +348,22 @@ class TicketManager extends Module {
               }
             }
 
-              //export yaml files
-              //ticket, form entry, and thread
-              // echo Spyc::YAMLDump($clean, true, false, true);
-              // $separator = '----------thread entries-----------';
-              // print ($separator);
-              //
-              // //thread entries
-              // echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
+              //export yaml files:
+              //ticket, thread entries, and form entry values
 
-              // $separator = '----------form entry values-----------';
+              //ticket
+              echo Spyc::YAMLDump($clean, true, false, true);
+
+              //start thread entries
+              $separator = '----------thread entries-----------';
+              print ($separator);
+
+              //thread entries
+              echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
+
+              //start form entry values
+              $separator = '----------form entry values-----------';
+              print ($separator);
               //form entry values
               echo Spyc::YAMLDump($form_entry_vals_clean, true, false, true);
 
