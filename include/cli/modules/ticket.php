@@ -367,13 +367,29 @@ class TicketManager extends Module {
               //form entry values
               echo Spyc::YAMLDump($form_entry_vals_clean, true, false, true);
 
-            //export directly to yaml file
-            //   if(!file_exists('ticket.yaml'))
-            //   {
-            //     $fh = fopen('ticket.yaml', 'w');
-            //     fwrite($fh, (Spyc::YAMLDump($clean)));
-            //     fclose($fh);
-            //   }
+              //export tickets directly to yaml file
+              if(!file_exists('ticket.yaml'))
+              {
+                $fh = fopen('ticket.yaml', 'w');
+                fwrite($fh, (Spyc::YAMLDump($clean)));
+                fclose($fh);
+              }
+
+              //export thread entries directly to yaml file
+              if(!file_exists('thread_entries.yaml'))
+              {
+                $fh = fopen('thread_entries.yaml', 'w');
+                fwrite($fh, (Spyc::YAMLDump($thread_entries_clean)));
+                fclose($fh);
+              }
+
+              //export form entry values directly to yaml file
+              if(!file_exists('form_entry_val.yaml'))
+              {
+                $fh = fopen('form_entry_val.yaml', 'w');
+                fwrite($fh, (Spyc::YAMLDump($form_entry_vals_clean)));
+                fclose($fh);
+              }
 
             }
             else
