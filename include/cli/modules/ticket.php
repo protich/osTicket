@@ -314,6 +314,9 @@ class TicketManager extends Module {
                 //thread entries for ticket
                 if($thread_clean[$i]['object_type'] == 'T' && $thread_entry->thread_id == $thread_clean[$i]['id'])
                 {
+                  $attachments = $thread_entry->getAttachments();
+
+
                   array_push($thread_entries_clean, array(
                   '    - thread_id' => $thread_entry->getThreadId(), '      object_id' => $thread->object_id,  '      pid' => $thread_entry->getPid(),
                   '      staff_id' => $thread_entry->getStaffId(),'      user_id' => $thread_entry->getUserId(),
@@ -322,11 +325,34 @@ class TicketManager extends Module {
                   '      editor_type' => $thread_entry->get('editor_type'), '      source' => $thread_entry->getSource(),
                   '      title' => $thread_entry->getTitle(), '      body' => $thread_entry->getBody(),
                   '      format' => $thread_entry->get('format'), '      ip_address' => $thread_entry->get('ip_address'),
-                  '      created' => $thread_entry->get('created')
+                  '      created' => $thread_entry->get('created'), '      num_attachments' => $thread_entry->getNumAttachments(),
+
                   )
                   );
                 }
               }
+
+              //if thread entry has attachment, add attachment details to yaml file
+              foreach ($attachments as $att)
+              {
+                $attachment_obj_id = $att->object_id;
+                $attachment_file_id = $att->file_id;
+                $attachment_inline = $att->inline;
+                $attachment_hashtable = $att->getInfo();
+
+                $attachment_file = $att->getFile();
+                $FS = $attachment_file->open();
+                $file_chunk = $FS->read();
+
+                array_push($thread_entries_clean, array(
+                    '      att_obj_id' => $attachment_obj_id, '      att_file_id' => $attachment_file_id,
+                    '      att_inline' => $attachment_inline,
+                    '      file_type' => $attachment_file->getType(), '      file_size' => $attachment_file->getSize(),
+                    '      file_name' => $attachment_file->getName(), '      file_created' => $attachment_file->created,
+                    '      file_key' => $attachment_file->getKey(), '      file_signature' => $attachment_file->getSignature()
+                ));
+              }
+
             }
 
             //prepare form entry vals for yaml file
@@ -361,7 +387,7 @@ class TicketManager extends Module {
               //thread entries
               echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
 
-              //start form entry values
+              // //start form entry values
               $separator = '----------form entry values-----------';
               print ($separator);
               //form entry values
