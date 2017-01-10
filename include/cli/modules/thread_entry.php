@@ -65,11 +65,20 @@ class ThreadEntryManager extends Module {
                 'editor_type' => $te['editor_type'], 'source' => $te['source'], 'title' => $te['title'],
                 'body' => $te['body'], 'format' => $te['format'], 'ip_address' => $te['ip_address'],
                 'created' => $te['created']);
+
+              if($te['num_attachments'] > 0)
+              {
+                $attachment_import[] = array('object_id' => $te['att_obj_id'], 'id' => $te['att_file_id'],
+                  'inline' => $te['att_inline'], 'name' => $te['file_name'], 'size' => $te['file_size'],
+                  'ticket_id' => $ticket_id, 'created' => $te['created'], 'signature' => $te['file_signature'],
+                  'key' => $te['file_key'],
+                );
+
+              }
+
             }
 
           }
-
-
 
           //create threads with a unique name as a new record
           $errors = array();
@@ -81,6 +90,21 @@ class ThreadEntryManager extends Module {
               $errors = array();
           }
 
+          //add attachment record for thread entries that are attachments
+          foreach ($attachment_import as $attachment)
+          {
+            $thread_id = self::getThreadIdByCombo($attachment['ticket_id'], 'T');
+            $thread_entry_id = self::getIdByCombo($thread_id, $attachment['created']);
+
+            $attachment['object_id'] = $thread_entry_id;
+            $file_id = self::getFileIdBySignature($attachment['signature']);
+
+            if($file_id != 0 && $thread_entry_id != 0)
+            {
+              self::createAttachment($attachment);
+            }
+
+          }
 
           break;
 
@@ -180,11 +204,51 @@ class ThreadEntryManager extends Module {
       return $row ? $row[0] : 0;
     }
 
+    private function getFileIdBySignature($signature)
+    {
+      $row = AttachmentFile::objects()
+          ->filter(array(
+            'signature'=>$signature))
+          ->values_flat('id')
+          ->first();
+
+      return $row ? $row[0] : 0;
+    }
+
+    function createAttachment($file, $name=false) {
+        $att = new Attachment(array(
+            'type' => 'H',
+            'object_id' => $file['object_id'],
+            'file_id' => $file['id'],
+            'inline' => $file['inline'] ? 1 : 0,
+        ));
+
+
+        // Record varying file names in the attachment record
+        if (is_array($file) && isset($file['name'])) {
+            $filename = $file['name'];
+        }
+        elseif (is_string($name)) {
+            $filename = $name;
+        }
+        if ($filename) {
+            // This should be a noop since the ORM caches on PK
+            $F = @$file['file'] ?: AttachmentFile::lookup($file['id']);
+            // XXX: This is not Unicode safe
+            if ($F && 0 !== strcasecmp($F->name, $filename))
+                $att->name = $filename;
+        }
+
+        if (!$att->save())
+            return false;
+        return $att;
+    }
+
     static function create_thread_entry($vars=array())
     {
       $thread_entry = new ThreadEntry($vars);
 
-      $thread_entry->created = new SqlFunction('NOW');
+      //$thread_entry->created = new SqlFunction('NOW');
 
       //return the thread entry
       return $thread_entry;
