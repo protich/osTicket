@@ -73,7 +73,7 @@ class FAQCategoryManager extends Module {
               //format the array nicely
               foreach ($faq_category as $C)
               {
-                $clean[] = array('category_id' => $C->getId(), 'ispublic' => boolval($C->ispublic),
+                $clean[] = array('ispublic' => $C->ispublic,
                 'name' => $C->getName(), 'description' => $C->getDescription(),
                 'notes' => $C->getNotes());
               }

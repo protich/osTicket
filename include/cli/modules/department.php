@@ -76,8 +76,9 @@ class DepartmentManager extends Module {
               //format the array nicely
               foreach ($departments as $department)
               {
-                // $clean[] = array('Name' => $department->getName(), array('Signature' => $department->getSignature(), 'ispublic' => boolval($department->ispublic), 'group_membership' => boolval($department->group_membership)) );
-                $clean[] = array('name' => $department->getName(), 'signature' => $department->getSignature(), 'ispublic' => boolval($department->ispublic), 'group_membership' => boolval($department->group_membership));
+                $clean[] = array('name' => $department->getName(), 'signature' => $department->getSignature(),
+                  'ispublic' => $department->ispublic,
+                  'group_membership' => $department->group_membership);
 
               }
 

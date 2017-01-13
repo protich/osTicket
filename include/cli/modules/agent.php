@@ -37,6 +37,8 @@ class AgentManager extends Module {
             'help' => 'Search by user id'),
         'dept' => array('-D', '--dept', 'help' => 'Search by access to department name or id'),
         'team' => array('-T', '--team', 'help' => 'Search by membership in team name or id'),
+        'yaml' => array('-yaml', '--yaml', 'default'=>false,
+            'action'=>'store_true', 'help'=>'Export in yaml format'),
     );
 
     var $stream;
@@ -59,37 +61,118 @@ class AgentManager extends Module {
             if (!($this->stream = fopen($options['file'], 'rb')))
                 $this->fail("Unable to open input file [{$options['file']}]");
 
-            // Defaults
-            $extras = array(
-                'isadmin' => 0,
-                'isactive' => 1,
-                'isvisible' => 1,
-                'dept_id' => $cfg->getDefaultDeptId(),
-                'timezone' => $cfg->getDefaultTimezone(),
-                'welcome_email' => $options['welcome'],
-            );
+            if($options['csv'])
+            {
+              // Defaults
+              $extras = array(
+                  'isadmin' => 0,
+                  'isactive' => 1,
+                  'isvisible' => 1,
+                  'dept_id' => $cfg->getDefaultDeptId(),
+                  'timezone' => $cfg->getDefaultTimezone(),
+                  'welcome_email' => $options['welcome'],
+              );
 
-            if ($options['backend'])
-                $extras['backend'] = $options['backend'];
+              if ($options['backend'])
+                  $extras['backend'] = $options['backend'];
 
-            $stderr = $this->stderr;
-            $status = Staff::importCsv($this->stream, $extras,
-                function ($agent, $data) use ($stderr, $options) {
-                    if (!$options['verbose'])
-                        return;
-                    $stderr->write(
-                        sprintf("\n%s - %s  --- imported!",
-                        $agent->getName(),
-                        $agent->getUsername()));
-                }
-            );
-            if (is_numeric($status))
-                $this->stderr->write("Successfully processed $status agents\n");
+              $stderr = $this->stderr;
+              $status = Staff::importCsv($this->stream, $extras,
+                  function ($agent, $data) use ($stderr, $options) {
+                      if (!$options['verbose'])
+                          return;
+                      $stderr->write(
+                          sprintf("\n%s - %s  --- imported!",
+                          $agent->getName(),
+                          $agent->getUsername()));
+                  }
+              );
+              if (is_numeric($status))
+                  $this->stderr->write("Successfully processed $status agents\n");
+              else
+                  $this->fail($status);
+            }
+            elseif($options['yaml'])
+            {
+              //place file into array
+              $data = YamlDataParser::load($options['file']);
+
+              //parse out data for specific tables
+              foreach ($data as $D)
+              {
+                //role id
+                $role = Role::getIdByName($D['role_id']);
+
+                //department id
+                $department = Dept::getIdByName($D['dept_id']);
+
+                $agent_import[] = array('dept_id' => $department, 'role_id' => $role,
+                  'username' => $D['username'], 'firstname' => $D['firstname'],
+                  'lastname' => $D['lastname'], 'passwd' => $D['passwd'],
+                  'email' => $D['email'], 'mobile' => $D['mobile'], 'signature' => $D['signature'],
+                  'timezone' => $D['timezone'], 'locale' => $D['locale'], 'isactive' => $D['isactive'],
+                  'isactadmin' => $D['isactadmin'], 'accttype' => $D['accttype'], 'isadmin' => $D['isadmin'],
+                  'isvisible' => $D['isvisible'], 'max_page_size' => $D['max_page_size'],
+                  'auto_refresh_rate' => $D['auto_refresh_rate'], 'default_paper_size' => $D['default_paper_size'],
+                  'extra' => $D['extra'], 'permissions' => $D['permissions'], 'lastlogin' => $D['lastlogin'],
+                  'passwdreset' => $D['passwdreset']
+
+                );
+              }
+
+              //create staff
+              $errors = array();
+              foreach ($agent_import as $o) {
+                  if ('self::create' && is_callable('self::create'))
+                      @call_user_func_array('self::create', array($o, &$errors, true));
+                  // TODO: Add a warning to the success page for errors
+                  //       found here
+                  $errors = array();
+              }
+            }
             else
-                $this->fail($status);
+            {
+              echo 'Please choose import type of --yaml or --csv' . "\n" ;
+            }
+
             break;
 
         case 'export':
+          if ($options['yaml'])
+          {
+            //get the agents
+            $staff = self::getQuerySet($options);
+
+            //format the array nicely
+            foreach ($staff as $S)
+            {
+              $clean[] = array('dept_id' => $S->getDept(), 'role_id' => $S->getRole(),
+                'username' => $S->getUserName(), 'firstname' => $S->getFirstName(),
+                'lastname' => $S->getLastName(), 'passwd' => $S->getPasswd(),
+                'email' => $S->getEmail(), 'mobile' => $S->mobile, 'signature' => $S->signature,
+                'timezone' => $S->timezone, 'locale' => $S->locale, 'isactive' => $S->isactive,
+                'isactadmin' => $S->isactadmin, 'accttype' => $S->accttype, 'isadmin' => $S->isadmin,
+                'isvisible' => $S->isvisible, 'max_page_size' => $S->max_page_size,
+                'auto_refresh_rate' => $S->auto_refresh_rate, 'default_paper_size' => $S->default_paper_size,
+                'extra' => $S->extra, 'permissions' => $S->permissions, 'lastlogin' => $S->lastlogin,
+                'passwdreset' => $S->passwdreset
+
+              );
+
+            }
+
+            //export yaml file
+            echo (Spyc::YAMLDump($clean));
+
+            if(!file_exists('agent.yaml'))
+            {
+              $fh = fopen('agent.yaml', 'w');
+              fwrite($fh, (Spyc::YAMLDump($clean)));
+              fclose($fh);
+            }
+          }
+          else
+          {
             $stream = $options['file'] ?: 'php://stdout';
             if (!($this->stream = fopen($stream, 'c')))
                 $this->fail("Unable to open output file [{$options['file']}]");
@@ -102,7 +185,9 @@ class AgentManager extends Module {
                     $agent->getEmail(),
                     $agent->getUserName(),
                 ));
-            break;
+          }
+
+          break;
 
         case 'list':
             $agents = $this->getAgents($options);
@@ -180,6 +265,36 @@ class AgentManager extends Module {
             )));
 
         return $agents->distinct('staff_id');
+    }
+
+    function getQuerySet($options, $requireOne=false) {
+        $staff = Staff::objects();
+
+        return $staff;
+    }
+
+    static function getEmailById($id) {
+        $list = Staff::objects()->filter(array(
+            'staff_id'=>$id,
+        ))->values_flat('email')->first();
+
+        if ($list)
+            return $list[0];
+    }
+
+    private function create($vars, &$error=false, $fetch=false) {
+        //see if staff exists
+        if ($fetch && ($staffId=Staff::getIdByEmail($vars['email'])))
+        {
+          return Staff::lookup($staffId);
+        }
+        else
+        {
+          $staff = Staff::create($vars);
+          $staff->save();
+          return $staff->staff_id;
+        }
+
     }
 }
 Module::register('agent', 'AgentManager');

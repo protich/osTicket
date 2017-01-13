@@ -51,9 +51,16 @@ class FAQManager extends Module {
             //place file into array
             $data = YamlDataParser::load($options['file']);
 
+            foreach ($data as $D)
+            {
+              $faq_import[] = array('category_id' => self::getIdByName($D['category_name']),
+                'ispublished' => $D['ispublished'], 'question' => $D['question'],
+                'answer' => $D['answer']);
+            }
+
             //create emails with a unique name as a new record
             $errors = array();
-            foreach ($data as $o) {
+            foreach ($faq_import as $o) {
                 if ('self::create' && is_callable('self::create'))
                     @call_user_func_array('self::create', array($o, &$errors, true));
                 // TODO: Add a warning to the success page for errors
@@ -74,8 +81,8 @@ class FAQManager extends Module {
               //format the array nicely
               foreach ($faq as $F)
               {
-                $clean[] = array('category_id' => $F->getCategoryId(),
-                'ispublished' => boolval($F->ispublished), 'question' => $F->getQuestion(),
+                $clean[] = array('category_name' => self::getNameById($F->category_id),
+                'ispublished' => $F->ispublished, 'question' => $F->getQuestion(),
                 'answer' => $F->getAnswer());
               }
 
@@ -138,6 +145,24 @@ class FAQManager extends Module {
          $row = $qs->first();
          return $row ? $row[0] : false;
      }
+
+     static function getNameById($id) {
+          $row = Category::objects()
+              ->filter(array('category_id'=>$id))
+              ->values_flat('name')
+              ->first();
+
+          return $row ? $row[0] : null;
+      }
+
+      static function getIdByName($name) {
+           $row = Category::objects()
+                ->filter(array('name'=>$name))
+                ->values_flat('category_id')
+                ->first();
+
+           return $row ? $row[0] : null;
+       }
 
     //adriane
     private function create($vars, &$error=false, $fetch=false) {

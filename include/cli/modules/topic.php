@@ -76,8 +76,8 @@ class TopicManager extends Module {
               //format the array nicely
               foreach ($topics as $topic)
               {
-                $clean[] = array('isactive' => boolval($topic->isactive),
-                'ispublic' => boolval($topic->ispublic), 'dept_id' => $topic->getDeptId(), 'priority_id' => $topic->getPriorityId(),
+                $clean[] = array('isactive' => $topic->isactive,
+                'ispublic' => $topic->ispublic, 'dept_id' => $topic->getDeptId(), 'priority_id' => $topic->getPriorityId(),
                 'topic' => $topic->topic, 'notes' => $topic->notes);
 
               }
