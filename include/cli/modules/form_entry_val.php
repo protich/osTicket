@@ -103,28 +103,37 @@ class FormEntryValManager extends Module {
         case 'export':
             if ($options['yaml'])
             {
-              //get the form entries
-              $form_entry = $this->getQuerySet($options);
+              //get the form entry values
+              $form_entry_vals = $this->getQuerySet($options);
 
-              $clean = array();
-
-              //format the array nicely
-              foreach ($form_entry as $F)
+              //prepare form entry vals for yaml file
+              foreach ($form_entry_vals as $form_entry_val)
               {
-                //form_entry_values table
-                $clean[] = array('entry_id' => $F->entry_id, 'field_id' => $F->field_id,
-                'value' => $F->value, 'value_id' => $F->value_id
+                $object_type = self::getTypeById($form_entry_val->entry_id);
+                if($object_type == 'T')
+                {
+                  //form entry id
+                  $form_entry_vals_clean[] = array('- entry_id' => $form_entry_val->entry_id, '  form_entry_values' => '');
 
-                //form_entry table
-
-
-              );
+                  //form entry values for ticket
+                  array_push($form_entry_vals_clean, array(
+                  '    - field_id' => $form_entry_val->field_id, '      value' => $form_entry_val->value
+                  )
+                  );
+                }
               }
+              unset($form_entry_vals);
 
               //export yaml file
-              echo (Spyc::YAMLDump($clean));
+              // echo (Spyc::YAMLDump($form_entry_vals_clean));
 
-              //var_dump($clean);
+              if(!file_exists('form_entry_value.yaml'))
+              {
+                $fh = fopen('form_entry_value.yaml', 'w');
+                fwrite($fh, (Spyc::YAMLDump($form_entry_vals_clean)));
+                fclose($fh);
+              }
+              unset($form_entry_vals_clean);
             }
             else
             {
@@ -214,6 +223,16 @@ class FormEntryValManager extends Module {
           ->first();
 
       return $row ? $row[0] : 0;
+    }
+
+    //ticket Number
+    static function getTypeById($id) {
+        $row = DynamicFormEntry::objects()
+            ->filter(array('id'=>$id))
+            ->values_flat('object_type')
+            ->first();
+
+        return $row ? $row[0] : 0;
     }
 }
 Module::register('form_entry_val', 'FormEntryValManager');

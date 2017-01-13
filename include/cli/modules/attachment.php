@@ -51,27 +51,16 @@ class AttachmentManager extends Module {
           //processing for thread entries
           foreach ($data as $D)
           {
-            $attachment_import[] = array('object_id' => $te['att_obj_id'], 'id' => $te['att_file_id'],
-              'inline' => $te['att_inline'], 'name' => $te['file_name'], 'size' => $te['file_size'],
-              'ticket_id' => $ticket_id, 'created' => $te['created'], 'signature' => $te['file_signature'],
-              'key' => $te['file_key'],
+            $attachment_import[] = array('object_id' => $D['att_obj_id'], 'id' => $D['att_file_id'],
+              'inline' => $D['att_inline'], 'name' => $D['file_name'], 'size' => $D['file_size'],
+              'signature' => $D['file_signature'], 'key' => $D['file_key'],
             );
           }
 
           //add attachment record for thread entries that are attachments
           foreach ($attachment_import as $attachment)
           {
-            $thread_id = self::getThreadIdByCombo($attachment['ticket_id'], 'T');
-            $thread_entry_id = self::getIdByCombo($thread_id, $attachment['created']);
-
-            $attachment['object_id'] = $thread_entry_id;
-            $file_id = self::getFileIdBySignature($attachment['signature']);
-
-            if($file_id != 0 && $thread_entry_id != 0)
-            {
-              self::createAttachment($attachment);
-            }
-
+            self::createAttachment($attachment);
           }
 
           break;
@@ -104,14 +93,14 @@ class AttachmentManager extends Module {
                 }
               }
               //export yaml file
-              echo Spyc::YAMLDump($attachments_clean, true, false, true);
+              // echo Spyc::YAMLDump($attachments_clean, true, false, true);
 
-              // if(!file_exists('attachment.yaml'))
-              // {
-              //   $fh = fopen('attachment.yaml', 'w');
-              //   fwrite($fh, (Spyc::YAMLDump($attachments_clean)));
-              //   fclose($fh);
-              // }
+              if(!file_exists('attachment.yaml'))
+              {
+                $fh = fopen('attachment.yaml', 'w');
+                fwrite($fh, (Spyc::YAMLDump($attachments_clean)));
+                fclose($fh);
+              }
               unset($attachments_clean);
             }
             else

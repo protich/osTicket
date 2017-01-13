@@ -66,16 +66,6 @@ class ThreadEntryManager extends Module {
                 'body' => $te['body'], 'format' => $te['format'], 'ip_address' => $te['ip_address'],
                 'created' => $te['created']);
 
-              if($te['num_attachments'] > 0)
-              {
-                $attachment_import[] = array('object_id' => $te['att_obj_id'], 'id' => $te['att_file_id'],
-                  'inline' => $te['att_inline'], 'name' => $te['file_name'], 'size' => $te['file_size'],
-                  'ticket_id' => $ticket_id, 'created' => $te['created'], 'signature' => $te['file_signature'],
-                  'key' => $te['file_key'],
-                );
-
-              }
-
             }
 
           }
@@ -90,22 +80,6 @@ class ThreadEntryManager extends Module {
               $errors = array();
           }
 
-          //add attachment record for thread entries that are attachments
-          foreach ($attachment_import as $attachment)
-          {
-            $thread_id = self::getThreadIdByCombo($attachment['ticket_id'], 'T');
-            $thread_entry_id = self::getIdByCombo($thread_id, $attachment['created']);
-
-            $attachment['object_id'] = $thread_entry_id;
-            $file_id = self::getFileIdBySignature($attachment['signature']);
-
-            if($file_id != 0 && $thread_entry_id != 0)
-            {
-              self::createAttachment($attachment);
-            }
-
-          }
-
           break;
 
         case 'export':
@@ -114,31 +88,41 @@ class ThreadEntryManager extends Module {
               //get the thread entries
               $thread_entries = self::getQuerySet($options);
 
-              //format the array nicely
               foreach ($thread_entries as $thread_entry)
               {
-                $clean[] = array('thread_id' => $thread_entry->getThreadId(), 'pid' => $thread_entry->getPid(),
-                'staff_id' => $thread_entry->getStaffId(),'user_id' => $thread_entry->getUserId(),
-                'type' => $thread_entry->getType(), 'flags' => $thread_entry->get('flags'),
-                'poster' => $thread_entry->getPoster(), 'editor' => $thread_entry->getEditor(),
-                'editor_type' => $thread_entry->get('editor_type'), 'source' => $thread_entry->getSource(),
-                'title' => $thread_entry->getTitle(), 'body' => $thread_entry->getBody(),
-                'format' => $thread_entry->get('format'), 'ip_address' => $thread_entry->get('ip_address'),
-                'created' => $thread_entry->get('created')
+                $thread_id = $thread_entry->getThreadId();
+                $ticket_id = self::getObjectByThread($thread_entry->getThreadId());
+                $ticket_num = self::getNumberById($ticket_id);
+
+                $thread_entries_clean[] = array('- ticket' => $ticket_num, '  thread_entry' => '');
+
+                array_push($thread_entries_clean, array(
+                '    - thread_id' => $thread_id, '      object_id' => $ticket_id,
+                '      pid' => $thread_entry->getPid(),
+                '      staff_id' => $thread_entry->getStaffId(),'      user_id' => $thread_entry->getUserId(),
+                '      type' => $thread_entry->getType(), '      flags' => $thread_entry->get('flags'),
+                '      poster' => $thread_entry->getPoster(), '      editor' => $thread_entry->getEditor(),
+                '      editor_type' => $thread_entry->get('editor_type'), '      source' => $thread_entry->getSource(),
+                '      title' => $thread_entry->getTitle(), '      body' => $thread_entry->getBody(),
+                '      format' => $thread_entry->get('format'), '      ip_address' => $thread_entry->get('ip_address'),
+                '      created' => $thread_entry->get('created'), '      num_attachments' => $thread_entry->getNumAttachments(),
+
+                )
                 );
 
               }
-
+              unset($thread_entries);
 
               //export yaml file
-              echo Spyc::YAMLDump(array_values($clean), true, false, true);
+              // echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
 
-              // if(!file_exists('thread_entry.yaml'))
-              // {
-              //   $fh = fopen('thread_entry.yaml', 'w');
-              //   fwrite($fh, (Spyc::YAMLDump($clean)));
-              //   fclose($fh);
-              // }
+              if(!file_exists('thread_entry.yaml'))
+              {
+                $fh = fopen('thread_entry.yaml', 'w');
+                fwrite($fh, (Spyc::YAMLDump($thread_entries_clean)));
+                fclose($fh);
+              }
+              unset($thread_entries_clean);
 
             }
             else
@@ -248,8 +232,6 @@ class ThreadEntryManager extends Module {
     {
       $thread_entry = new ThreadEntry($vars);
 
-      //$thread_entry->created = new SqlFunction('NOW');
-
       //return the thread entry
       return $thread_entry;
 
@@ -259,12 +241,12 @@ class ThreadEntryManager extends Module {
         //see if thread entry exists
         if ($fetch && ($threadId=self::getIdByCombo($vars['thread_id'], $vars['created'])))
         {
-          var_dump('match');
+          // var_dump('match');
           return ThreadEntry::lookup($threadId);
         }
         else
         {
-          var_dump('new');
+          // var_dump('new');
           $thread_entry = self::create_thread_entry($vars);
           $thread_entry->save();
 
@@ -272,6 +254,33 @@ class ThreadEntryManager extends Module {
         }
 
     }
+
+    //thread object id
+    static function getObjectByThread($thread_id) {
+        $row = Thread::objects()
+            ->filter(array('id'=>$thread_id))
+            ->values_flat('object_id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+
+
+//ticket Number
+static function getNumberById($id) {
+    $row = Ticket::objects()
+        ->filter(array('ticket_id'=>$id))
+        ->values_flat('number')
+        ->first();
+
+    return $row ? $row[0] : 0;
+}
+
+static function write_block($what) {
+    fwrite($this->stream, Spyc::YAMLDump($thread_entries_clean, true, false, true));
+    fwrite($this->stream, "\n");
+}
 
 
 }
