@@ -129,7 +129,7 @@ class UserManager extends Module {
               }
 
               //export yaml file
-              echo (Spyc::YAMLDump($clean[]));
+              // echo (Spyc::YAMLDump($clean[]));
 
               if(!file_exists('user.yaml'))
               {

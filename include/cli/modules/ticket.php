@@ -282,20 +282,20 @@ class TicketManager extends Module {
 
             } //end ticket foreach
 
-            unset($tickets);
+              unset($tickets);
 
               //export yaml file
 
               //ticket
-              echo Spyc::YAMLDump($clean, true, false, true);
+              // echo Spyc::YAMLDump($clean, true, false, true);
 
               //export tickets directly to yaml file
-              // if(!file_exists('ticket.yaml'))
-              // {
-              //   $fh = fopen('ticket.yaml', 'w');
-              //   fwrite($fh, (Spyc::YAMLDump($clean)));
-              //   fclose($fh);
-              // }
+              if(!file_exists('ticket.yaml'))
+              {
+                $fh = fopen('ticket.yaml', 'w');
+                fwrite($fh, (Spyc::YAMLDump($clean)));
+                fclose($fh);
+              }
 
             }
             else

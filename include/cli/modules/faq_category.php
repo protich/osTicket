@@ -79,7 +79,7 @@ class FAQCategoryManager extends Module {
               }
 
               //export yaml file
-              echo (Spyc::YAMLDump($clean));
+              // echo (Spyc::YAMLDump($clean));
 
               if(!file_exists('faq_category.yaml'))
               {
@@ -132,22 +132,16 @@ class FAQCategoryManager extends Module {
         //see if staff exists
         if ($fetch && ($catId=Category::findIdByName($vars['name'])))
         {
-          var_dump('match');
+          // var_dump('match');
           return Category::lookup($catId);
         }
         else
         {
-          var_dump('new');
+          // var_dump('new');
           $cat = Category::create($vars);
           $cat->save();
           return $cat;
         }
-
-        // $arrayin = $vars['name'];
-        //
-        // var_dump('youre passing in ' . $arrayin);
-        // var_dump('sla id is ' . Category::findIdByName($arrayin));
-
     }
 }
 Module::register('faq_category', 'FAQCategoryManager');

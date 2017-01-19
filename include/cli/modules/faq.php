@@ -87,7 +87,7 @@ class FAQManager extends Module {
               }
 
               //export yaml file
-              echo (Spyc::YAMLDump($clean));
+              // echo (Spyc::YAMLDump($clean));
 
               if(!file_exists('faq.yaml'))
               {
@@ -169,12 +169,12 @@ class FAQManager extends Module {
         //see if staff exists
         if ($fetch && ($faqId=self::getIdByQuestion($vars['question'])))
         {
-          var_dump('match');
+          // var_dump('match');
           return FAQ::lookup($faqId);
         }
         else
         {
-          var_dump('new');
+          // var_dump('new');
           $faq = FAQ::create($vars);
           $faq->save();
           return $faq->faq_id;

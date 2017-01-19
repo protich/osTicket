@@ -83,7 +83,7 @@ class TopicManager extends Module {
               }
 
               //export yaml file
-              echo Spyc::YAMLDump(array_values($clean), true, false, true);
+              // echo Spyc::YAMLDump(array_values($clean), true, false, true);
 
               if(!file_exists('topic.yaml'))
               {

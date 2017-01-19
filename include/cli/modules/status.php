@@ -49,9 +49,6 @@ class StatusManager extends Module {
           //place file into array
           $data = YamlDataParser::load($options['file']);
 
-          //default ticket statuses
-          $defaults = array('Open', 'Resolved', 'Closed', 'Archived', 'Deleted',);
-
           //create statuses with a unique name as a new record
           $errors = array();
           foreach ($data as $o) {
@@ -76,7 +73,7 @@ class StatusManager extends Module {
               }
 
               //export yaml file
-              echo Spyc::YAMLDump(array_values($clean), true, false, true);
+              // echo Spyc::YAMLDump(array_values($clean), true, false, true);
 
               if(!file_exists('status.yaml'))
               {
@@ -126,14 +123,14 @@ class StatusManager extends Module {
         return $statuses;
     }
 
-    // static function getIdByName($name) {
-    //     $row = TicketStatus::objects()
-    //         ->filter(array('name'=>$name))
-    //         ->values_flat('id')
-    //         ->first();
-    //
-    //     return $row ? $row[0] : 0;
-    // }
+    static function getIdByName($name) {
+        $row = TicketStatus::objects()
+            ->filter(array('name'=>$name))
+            ->values_flat('id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
 
 }
 Module::register('status', 'StatusManager');

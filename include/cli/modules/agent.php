@@ -162,7 +162,7 @@ class AgentManager extends Module {
             }
 
             //export yaml file
-            echo (Spyc::YAMLDump($clean));
+            // echo (Spyc::YAMLDump($clean));
 
             if(!file_exists('agent.yaml'))
             {

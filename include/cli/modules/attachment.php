@@ -51,17 +51,29 @@ class AttachmentManager extends Module {
           //processing for thread entries
           foreach ($data as $D)
           {
-            $attachment_import[] = array('object_id' => $D['att_obj_id'], 'id' => $D['att_file_id'],
+            $ticket_id = Ticket::getIdByNumber($D['ticket_number']);
+
+            $attachment_import[] = array('ticket_number' => $D['ticket_number'], 'ticket_id' => $ticket_id,
+              'created' => $D['file_created'],
+              'object_id' => $D['att_obj_id'], 'id' => $D['att_file_id'],
               'inline' => $D['att_inline'], 'name' => $D['file_name'], 'size' => $D['file_size'],
               'signature' => $D['file_signature'], 'key' => $D['file_key'],
             );
           }
 
-          //add attachment record for thread entries that are attachments
           foreach ($attachment_import as $attachment)
           {
-            self::createAttachment($attachment);
+            $thread_id = self::getThreadIdByCombo($attachment['ticket_id'], 'T');
+            $thread_entry_id = self::getIdByCombo($thread_id, $attachment['created']);
+
+            $attachment['object_id'] = $thread_entry_id;
+            $file_id = self::getFileIdBySignature($attachment['signature']);
+            if($file_id != 0 && $thread_entry_id != 0)
+            {
+              self::createAttachment($attachment);
+            }
           }
+          unset($attachment_import);
 
           break;
 
@@ -79,19 +91,24 @@ class AttachmentManager extends Module {
                   $attachment_obj_id = $att->object_id;
                   $attachment_file_id = $att->file_id;
                   $attachment_inline = $att->inline;
-                  $attachment_hashtable = $att->getInfo();
 
                   $attachment_file = $att->getFile();
 
+                  $thread_id = self::getThreadId($attachment_obj_id);
+                  $ticket_id = self::getTicketId($thread_id);
+                  $ticket_number = self::getNumberById($ticket_id);
+
                   $attachments_clean[] = array(
-                      '      att_obj_id' => $attachment_obj_id, '      att_file_id' => $attachment_file_id,
-                      '      att_inline' => $attachment_inline,
-                      '      file_type' => $attachment_file->getType(), '      file_size' => $attachment_file->getSize(),
-                      '      file_name' => $attachment_file->getName(), '      file_created' => $attachment_file->created,
-                      '      file_key' => $attachment_file->getKey(), '      file_signature' => $attachment_file->getSignature()
+                      '- attachment' => '', '  ticket_number' => $ticket_number,
+                      '  att_obj_id' => $attachment_obj_id, '  att_file_id' => $attachment_file_id,
+                      '  att_inline' => $attachment_inline,
+                      '  file_type' => $attachment_file->getType(), '  file_size' => $attachment_file->getSize(),
+                      '  file_name' => $attachment_file->getName(), '  file_created' => $attachment_file->created,
+                      '  file_key' => $attachment_file->getKey(), '  file_signature' => $attachment_file->getSignature()
                   );
                 }
               }
+
               //export yaml file
               // echo Spyc::YAMLDump($attachments_clean, true, false, true);
 
@@ -163,6 +180,36 @@ class AttachmentManager extends Module {
           ->first();
 
       return $row ? $row[0] : 0;
+    }
+
+    private function getThreadId($object_id)
+    {
+      $row = ThreadEntry::objects()
+          ->filter(array(
+            'id'=>$object_id))
+          ->values_flat('thread_id')
+          ->first();
+      return $row ? $row[0] : 0;
+    }
+
+    private function getTicketId($thread_id)
+    {
+      $row = Thread::objects()
+          ->filter(array(
+            'id'=>$thread_id))
+          ->values_flat('object_id')
+          ->first();
+      return $row ? $row[0] : 0;
+    }
+
+    //ticket Number
+    static function getNumberById($id) {
+        $row = Ticket::objects()
+            ->filter(array('ticket_id'=>$id))
+            ->values_flat('number')
+            ->first();
+
+        return $row ? $row[0] : 0;
     }
 
     function createAttachment($file, $name=false) {

@@ -30,12 +30,6 @@ class RoleManager extends Module {
 
     function run($args, $options) {
 
-      if (!function_exists('boolval')) {
-        function boolval($val) {
-          return (bool) $val;
-        }
-      }
-
         Bootstrap::connect();
 
         switch ($args['action']) {
@@ -74,12 +68,12 @@ class RoleManager extends Module {
               //format the array nicely
               foreach ($roles as $R)
               {
-                $clean[] = array('flags' => boolval($R->flags), 'name' => $R->getName(), 'notes' => $R->notes, 'permissions' => $R->permissions);
+                $clean[] = array('flags' => $R->flags, 'name' => $R->getName(), 'notes' => $R->notes, 'permissions' => $R->permissions);
 
               }
 
               //export yaml file
-              echo (Spyc::YAMLDump($clean));
+              // echo (Spyc::YAMLDump($clean));
 
               if(!file_exists('role.yaml'))
               {
@@ -89,15 +83,10 @@ class RoleManager extends Module {
                 fclose($fh);
 
                 //move file to exports folder
-                rename('/var/www/html/osticket.1.10/role.yaml', '/var/www/html/osticket.1.10/exports/role.yaml');
-
-
+                //rename('/var/www/html/osticket.1.10/role.yaml', '/var/www/html/osticket.1.10/exports/role.yaml');
               }
+              // $path = glob('role.yaml');
 
-              // var_dump(realpath('./../../osticket.1.10/role.yaml'));
-              // var_dump(realpath('/var/www/html/osticket.1.10/exports/role.yaml'));
-              var_dump(file_exists('/var/www/html/osticket.1.10/exports/'));
-              var_dump(file_exists('/./../../osticket.1.10/exports/'));
             }
             else
             {
@@ -108,7 +97,7 @@ class RoleManager extends Module {
               fputcsv($this->stream, array('Flags', 'Name', 'Notes', 'Permissions'));
               foreach (RoleModel::objects() as $role)
                   fputcsv($this->stream,
-                          array((string) boolval($role->flags), $role->getName(), $role->notes, $R->permissions));
+                          array((string) $role->flags, $role->getName(), $role->notes, $R->permissions));
             }
 
             break;
@@ -119,7 +108,7 @@ class RoleManager extends Module {
             foreach ($roles as $R) {
                 $this->stdout->write(sprintf(
                     "%d %s <%s>%s\n",
-                    boolval($R->flags), $R->getName(), $R->notes, $R->permissions
+                    $R->flags, $R->getName(), $R->notes, $R->permissions
                 ));
             }
 
