@@ -1474,7 +1474,8 @@ implements CustomListItem, TemplateVariable {
 
 
         //see if status exists
-        if ($fetch && ($statusId=StatusManager::getIdByName($ht['name'])) || $skip)
+        // if ($fetch && ($statusId=StatusManager::getIdByName($ht['name'])) || $skip)
+        if ($fetch && ($statusId=StatusManager::getIdByName($ht['name'])))
         {
           var_dump('match');
           return self::lookup($statusId);
