@@ -296,7 +296,7 @@ class FileManager extends Module {
                 // Find or create the file record
                 $finfo = $header['file'];
                 // TODO: Consider the $version code
-                $f = AttachmentFile::lookup($finfo['id']);
+                $f = AttachmentFile::lookup(array('key' => $finfo['key']));
                 if ($f) {
                     // Verify file information
                     if ($f->getSize() != $finfo['size']
@@ -318,6 +318,7 @@ class FileManager extends Module {
                 else {
                     // Bypass the AttachmentFile::create() because we do not
                     // have the data to send yet.
+                    unset($finfo['id']);
                     $f = new AttachmentFile($finfo);
                     $f->__new__ = true;
                     if (!$f->save(true)) {
@@ -364,15 +365,32 @@ class FileManager extends Module {
                                 $f->getName()
                             ));
                         }
+
+                        // See if dlen  was wrong... e.g empty file.
+                        $strpos = strpos($contents, 'EOF');
+                        if ($strpos !== false) {
+                            list(, $eof) = unpack('N',
+                                    substr($contents, $strpos, 4));
+                            // Make sure we're at EOF 4realz
+                            if ($eof == 0x454f461c) {
+                                $len = (strlen($contents)-$strpos);
+                                $contents = substr($contents, 0, $strpos);
+                                $pos=fseek($stream, ftell($stream)-$len);
+                            } else // false eof
+                                $strpos = false;
+                        }
+
                         // Calculate MD5 and SHA1 hashes of the file to verify
                         // contents after successfully written to backend
-                        if (!$bk->write($contents))
-                            throw new Exception(
-                                'Unable to send file contents to backend');
+                        if ($contents && !$bk->write($contents))
+                            throw new Exception('Unable to send file
+                                    contents to backend');
                         hash_update($md5, $contents);
                         hash_update($sha1, $contents);
                         $dlen -= strlen($contents);
                         $written += strlen($contents);
+                        if ($strpos !== false)
+                            break;
                     }
                     // Some backends cannot handle flush() without a
                     // corresponding write() call.
