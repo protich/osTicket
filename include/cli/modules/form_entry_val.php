@@ -15,7 +15,6 @@ class TicketPriority extends VerySimpleModel {
 
     //adriane
     function getPriorityByName($name) {
-      var_dump('made it in');
         $row = static::objects()
             ->filter(array('priority'=>$name))
             ->values_flat('priority_id')
@@ -55,12 +54,6 @@ class FormEntryValManager extends Module {
 
     function run($args, $options) {
 
-      if (!function_exists('boolval')) {
-        function boolval($val) {
-          return (bool) $val;
-        }
-      }
-
         Bootstrap::connect();
 
         switch ($args['action']) {
@@ -79,12 +72,18 @@ class FormEntryValManager extends Module {
           //processing for form entry values
           foreach ($data as $D)
           {
-            $entry_id = $D['entry_id'];
             $form_entry_values = $D['form_entry_values'];
+            $ticket_id = Ticket::getIdByNumber($D['ticket_number']);
 
-            foreach ($form_entry_values as $form_entry_value)
+            foreach ($form_entry_values as $fev)
             {
-              $form_entry_val_import[] = array('entry_id' => $entry_id, 'field_id' => $form_entry_value['field_id'], 'value' => $form_entry_value['value']);
+              $form_id = self::getFormIdByName($fev['form_name']);
+              $entry_id = self::getFormEntryByCombo($form_id, $ticket_id);
+              $field_id = self::getFieldIdByCombo($form_id, $fev['field_label'], $fev['field_name']);
+
+              $form_entry_val_import[] = array('entry_id' => $entry_id,
+                'field_id' => $field_id,
+                'value' => $fev['value']);
             }
 
           }
@@ -112,12 +111,18 @@ class FormEntryValManager extends Module {
                 $object_type = self::getTypeById($form_entry_val->entry_id);
                 if($object_type == 'T')
                 {
+                  $ticket_id = self::getTicketByFormEntry($form_entry_val->entry_id);
+                  $ticket_number = self::getNumberById($ticket_id);
+                  $form_id = self::getFormIdById($form_entry_val->field_id);
+
                   //form entry id
-                  $form_entry_vals_clean[] = array('- entry_id' => $form_entry_val->entry_id, '  form_entry_values' => '');
+                  $form_entry_vals_clean[] = array('- ticket_number' =>  $ticket_number,'  form_entry_values' => '');
 
                   //form entry values for ticket
                   array_push($form_entry_vals_clean, array(
-                  '    - field_id' => $form_entry_val->field_id, '      value' => $form_entry_val->value
+                  '    - field_id' => $form_entry_val->field_id, '      field_label' => self::getFieldLabelById($form_entry_val->field_id),
+                  '      field_name' => self::getFieldNameById($form_entry_val->field_id), '      form_name' => self::getFormNameById($form_id),
+                  '      value' => $form_entry_val->value
                   )
                   );
                 }
@@ -125,14 +130,14 @@ class FormEntryValManager extends Module {
               unset($form_entry_vals);
 
               //export yaml file
-              // echo (Spyc::YAMLDump($form_entry_vals_clean));
+              echo (Spyc::YAMLDump($form_entry_vals_clean, false, 0));
 
-              if(!file_exists('form_entry_value.yaml'))
-              {
-                $fh = fopen('form_entry_value.yaml', 'w');
-                fwrite($fh, (Spyc::YAMLDump($form_entry_vals_clean)));
-                fclose($fh);
-              }
+              // if(!file_exists('form_entry_value.yaml'))
+              // {
+              //   $fh = fopen('form_entry_value.yaml', 'w');
+              //   fwrite($fh, (Spyc::YAMLDump($form_entry_vals_clean, false, 0)));
+              //   fclose($fh);
+              // }
               unset($form_entry_vals_clean);
             }
             else
@@ -182,9 +187,7 @@ class FormEntryValManager extends Module {
       //if the entry value is for priority, set value_id
       if ($vars['field_id'] == 22)
       {
-        var_dump('passing in ' . $vars['value']);
         $FeVal->value_id = TicketPriority::getPriorityByName($vars['value']);
-        var_dump('val id ' . $FeVal->value_id);
       }
 
       //return the form entry value
@@ -194,17 +197,16 @@ class FormEntryValManager extends Module {
 
     static function create($vars, &$error=false, $fetch=false)
     {
-
         $FevVal = self::getIdByCombo($vars['entry_id'], $vars['field_id'], $vars['value']);
         //see if form entry val exists
         if ($fetch && ($FevVal != '0'))
         {
-          var_dump('match');
+          // var_dump('match');
           return DynamicFormEntryAnswer::lookup($FevVal);
         }
         else
         {
-          var_dump('new ' . $vars['entry_id'] . ' ' .  $vars['field_id']);
+          // var_dump('new ' . $vars['entry_id'] . ' ' .  $vars['field_id']);
           $Fev = self::create_form_entry_val($vars);
           $Fev->save();
           return $Fev->entry_id;
@@ -212,6 +214,7 @@ class FormEntryValManager extends Module {
 
     }
 
+    //form entry value (value field)
     private function getIdByCombo($entry_id, $field_id,$value)
     {
       $row = DynamicFormEntryAnswer::objects()
@@ -225,11 +228,101 @@ class FormEntryValManager extends Module {
       return $row ? $row[0] : 0;
     }
 
-    //ticket Number
+    //object_type
     static function getTypeById($id) {
         $row = DynamicFormEntry::objects()
             ->filter(array('id'=>$id))
             ->values_flat('object_type')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //ticket id
+    static function getTicketByFormEntry($id) {
+        $row = DynamicFormEntry::objects()
+            ->filter(array('id'=>$id))
+            ->values_flat('object_id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //Form Entry Id
+    static function getFormEntryByCombo($form_id, $object_id) {
+        $row = DynamicFormEntry::objects()
+            ->filter(array('form_id'=>$form_id, 'object_id'=>$object_id))
+            ->values_flat('id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //ticket Number
+    static function getNumberById($id) {
+        $row = Ticket::objects()
+            ->filter(array('ticket_id'=>$id))
+            ->values_flat('number')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //field Label
+    static function getFieldLabelById($id) {
+        $row = DynamicFormField::objects()
+            ->filter(array('id'=>$id))
+            ->values_flat('label')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //field Name
+    static function getFieldNameById($id) {
+        $row = DynamicFormField::objects()
+            ->filter(array('id'=>$id))
+            ->values_flat('name')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //field Id
+    static function getFieldIdByCombo($form_id, $label, $name) {
+        $row = DynamicFormField::objects()
+            ->filter(array('form_id'=>$form_id, 'label'=>$label, 'name'=>$name))
+            ->values_flat('id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //Form Id By Form Entry
+    static function getFormIdById($id) {
+        $row = DynamicFormField::objects()
+            ->filter(array('id'=>$id))
+            ->values_flat('form_id')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //Form Name
+    static function getFormNameById($id) {
+        $row = DynamicForm::objects()
+            ->filter(array('id'=>$id))
+            ->values_flat('title')
+            ->first();
+
+        return $row ? $row[0] : 0;
+    }
+
+    //Form Id By Name
+    static function getFormIdByName($name) {
+        $row = DynamicForm::objects()
+            ->filter(array('title'=>$name))
+            ->values_flat('id')
             ->first();
 
         return $row ? $row[0] : 0;

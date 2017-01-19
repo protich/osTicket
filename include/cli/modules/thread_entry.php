@@ -53,17 +53,22 @@ class ThreadEntryManager extends Module {
           foreach ($data as $D)
           {
             $ticket = $D['ticket'];
+            $body = $D['body'];
+
             $thread_entry = $D['thread_entry'];
+
             foreach ($thread_entry as $te)
             {
               $ticket_id = Ticket::getIdByNumber($ticket);
               $thread_id = self::getThreadIdByCombo($ticket_id, 'T');
+              $staffId = Staff::getIdByEmail($te['staff_email']);
+              $user_id = self::getIdByEmail($te['user_email']);
 
               $thread_entry_import[] = array('pid' => $te['pid'], 'thread_id' => $thread_id,
-                'staff_id' => $te['staff_id'], 'user_id' => $te['user_id'], 'type' => $te['type'],
+                'staff_id' => $staffId, 'user_id' => $user_id, 'type' => $te['type'],
                 'flags' => $te['flags'], 'poster' => $te['poster'], 'editor' => $te['editor'],
                 'editor_type' => $te['editor_type'], 'source' => $te['source'], 'title' => $te['title'],
-                'body' => $te['body'], 'format' => $te['format'], 'ip_address' => $te['ip_address'],
+                'body' => $body, 'format' => $te['format'], 'ip_address' => $te['ip_address'],
                 'created' => $te['created']);
 
             }
@@ -93,19 +98,30 @@ class ThreadEntryManager extends Module {
                 $thread_id = $thread_entry->getThreadId();
                 $ticket_id = self::getObjectByThread($thread_entry->getThreadId());
                 $ticket_num = self::getNumberById($ticket_id);
+                $staff_email = self::getEmailById($thread_entry->getStaffId());
+                $user = $thread_entry->getUser();
 
-                $thread_entries_clean[] = array('- ticket' => $ticket_num, '  thread_entry' => '');
+                if($user != null)
+                {
+                  $user_email = $user->getDefaultEmail();
+                }
+                else {
+                  $user_email = '';
+                }
+
+
+                $thread_entries_clean[] = array('- ticket' => $ticket_num,  '  body' => $thread_entry->body, '  thread_entry' => '');
 
                 array_push($thread_entries_clean, array(
                 '    - thread_id' => $thread_id, '      object_id' => $ticket_id,
                 '      pid' => $thread_entry->getPid(),
-                '      staff_id' => $thread_entry->getStaffId(),'      user_id' => $thread_entry->getUserId(),
+                '      staff_email' => $staff_email,'      user_email' => $user_email,
                 '      type' => $thread_entry->getType(), '      flags' => $thread_entry->get('flags'),
                 '      poster' => $thread_entry->getPoster(), '      editor' => $thread_entry->getEditor(),
                 '      editor_type' => $thread_entry->get('editor_type'), '      source' => $thread_entry->getSource(),
-                '      title' => $thread_entry->getTitle(), '      body' => $thread_entry->getBody(),
+                '      title' => $thread_entry->getTitle(),
                 '      format' => $thread_entry->get('format'), '      ip_address' => $thread_entry->get('ip_address'),
-                '      created' => $thread_entry->get('created'), '      num_attachments' => $thread_entry->getNumAttachments(),
+                '      created' => $thread_entry->get('created'),
 
                 )
                 );
@@ -114,12 +130,12 @@ class ThreadEntryManager extends Module {
               unset($thread_entries);
 
               //export yaml file
-              // echo Spyc::YAMLDump($thread_entries_clean, true, false, true);
+              // echo Spyc::YAMLDump($thread_entries_clean, false, 0);
 
               if(!file_exists('thread_entry.yaml'))
               {
                 $fh = fopen('thread_entry.yaml', 'w');
-                fwrite($fh, (Spyc::YAMLDump($thread_entries_clean)));
+                fwrite($fh, (Spyc::YAMLDump($thread_entries_clean, false, 0)));
                 fclose($fh);
               }
               unset($thread_entries_clean);
@@ -188,46 +204,6 @@ class ThreadEntryManager extends Module {
       return $row ? $row[0] : 0;
     }
 
-    private function getFileIdBySignature($signature)
-    {
-      $row = AttachmentFile::objects()
-          ->filter(array(
-            'signature'=>$signature))
-          ->values_flat('id')
-          ->first();
-
-      return $row ? $row[0] : 0;
-    }
-
-    function createAttachment($file, $name=false) {
-        $att = new Attachment(array(
-            'type' => 'H',
-            'object_id' => $file['object_id'],
-            'file_id' => $file['id'],
-            'inline' => $file['inline'] ? 1 : 0,
-        ));
-
-
-        // Record varying file names in the attachment record
-        if (is_array($file) && isset($file['name'])) {
-            $filename = $file['name'];
-        }
-        elseif (is_string($name)) {
-            $filename = $name;
-        }
-        if ($filename) {
-            // This should be a noop since the ORM caches on PK
-            $F = @$file['file'] ?: AttachmentFile::lookup($file['id']);
-            // XXX: This is not Unicode safe
-            if ($F && 0 !== strcasecmp($F->name, $filename))
-                $att->name = $filename;
-        }
-
-        if (!$att->save())
-            return false;
-        return $att;
-    }
-
     static function create_thread_entry($vars=array())
     {
       $thread_entry = new ThreadEntry($vars);
@@ -277,9 +253,24 @@ static function getNumberById($id) {
     return $row ? $row[0] : 0;
 }
 
-static function write_block($what) {
-    fwrite($this->stream, Spyc::YAMLDump($thread_entries_clean, true, false, true));
-    fwrite($this->stream, "\n");
+//staff
+private function getEmailById($id) {
+    $list = Staff::objects()->filter(array(
+        'staff_id'=>$id,
+    ))->values_flat('email')->first();
+
+    if ($list)
+        return $list[0];
+}
+
+//user
+static function getIdByEmail($email) {
+    $row = User::objects()
+        ->filter(array('emails__address'=>$email))
+        ->values_flat('id')
+        ->first();
+
+    return $row ? $row[0] : 0;
 }
 
 

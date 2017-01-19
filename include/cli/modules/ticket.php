@@ -16,7 +16,6 @@ class TicketPriority extends VerySimpleModel {
 
     //adriane
     function getPriorityByName($name) {
-      // var_dump('made it in');
         $row = TicketPriority::objects()
             ->filter(array('priority'=>$name))
             ->values_flat('priority_id')
@@ -145,8 +144,10 @@ class TicketManager extends Module {
           //processing for threads
           foreach ($data as $D)
           {
+            //look at thread section of ticket export
             $thread = $D['thread'];
 
+            //save variables out of each individual thread (one per ticket)
             foreach ($thread as $T)
             {
               $extra = $T['extra'];
@@ -159,7 +160,7 @@ class TicketManager extends Module {
 
             //form_entry table
             $thread_import[] = array('object_id' => $object_id, 'object_type' => 'T',
-                'extra' => $extra, 'lastresponse' => 'T', 'lastmessage' => $lastmessage);
+                'extra' => $extra, 'lastresponse' => $lastresponse, 'lastmessage' => $lastmessage);
 
           }
 
@@ -177,11 +178,15 @@ class TicketManager extends Module {
           //processing for form entries
           foreach ($data as $D)
           {
+            //look at form entry section of ticket export
             $form_entry = $D['form_entry'];
 
+            //save variables out of each individual form entry (max 2 per ticket)
             foreach ($form_entry as $T)
             {
               $form_id = $T['form_id'];
+              $extra = $T['extra'];
+              $sort = $T['sort'];
             }
 
             //parse form id
@@ -194,7 +199,7 @@ class TicketManager extends Module {
             {
               //form_entry table
               $form_entry_import[] = array('form_id' => $fid,
-                  'object_id' => $object_id, 'object_type' => 'T');
+                  'object_id' => $object_id, 'object_type' => 'T', 'extra' => $extra, 'sort' => $sort);
             }
 
           }
@@ -266,6 +271,7 @@ class TicketManager extends Module {
                 'topic_name' => $topicName, 'agent_email' =>  $agentEmail, 'grace_period' => 75, 'subject' => $ticket->getSubject(),
 
                 'form_entry' => array('- form_entry_id' => self::getFormEntryId($ticket->ticket_id), '  form_id' => self::getFormId($ticket->ticket_id),
+                                      '  form_name' => self::getFormName(self::getFormId($ticket->ticket_id)),
                                       '  extra' => self::getFormExtra($ticket->ticket_id), '  sort' => self::getFormSort($ticket->ticket_id)
                               ),
 
@@ -281,15 +287,15 @@ class TicketManager extends Module {
               //export yaml file
 
               //ticket
-              //echo Spyc::YAMLDump($clean, true, false, true);
+              echo Spyc::YAMLDump($clean, true, false, true);
 
               //export tickets directly to yaml file
-              if(!file_exists('ticket.yaml'))
-              {
-                $fh = fopen('ticket.yaml', 'w');
-                fwrite($fh, (Spyc::YAMLDump($clean)));
-                fclose($fh);
-              }
+              // if(!file_exists('ticket.yaml'))
+              // {
+              //   $fh = fopen('ticket.yaml', 'w');
+              //   fwrite($fh, (Spyc::YAMLDump($clean)));
+              //   fclose($fh);
+              // }
 
             }
             else
@@ -374,7 +380,6 @@ class TicketManager extends Module {
     }
 
     static function form_entry_create($vars, &$error=false, $fetch=false) {
-        //var_dump('form');
         //see if form entry exists
         if ($fetch && ($FeId=self::getIdByCombo($vars['form_id'], $vars['object_id'])) || $vars['form_id']  == null)
         {
@@ -394,41 +399,33 @@ class TicketManager extends Module {
 
     //adriane
     static function ticket_create($vars, &$errors=array(), $fetch=false) {
-      //var_dump('ticket');
         //see if ticket exists
         if ($fetch && ($ticketId=Ticket::getIdByNumber($vars['number'])))
         {
-          var_dump('found ticket match');
+          // var_dump('found ticket match');
           return Ticket::lookup($ticketId);
         }
         //otherwise create new ticket
         else
         {
-          var_dump('new ticket');
+          // var_dump('new ticket');
           $ticket = self::create_ticket($vars);
           $ticket->loadDynamicData(true);
           $ticket->save();
           return $ticket->ticket_id;
         }
-
-        // $arrayin = $vars['number'];
-        //
-        // var_dump('youre passing in ' . $vars['number']);
-        // var_dump('ticket id is ' . Ticket::getIdByNumber($vars['number']));
-
-
     }
 
     static function thread_create($vars, &$error=false, $fetch=false) {
         //see if thread exists
         if ($fetch && ($threadId=self::getThreadIdByCombo($vars['object_id'], $vars['object_type'])))
         {
-          var_dump('thread match');
+          // var_dump('thread match');
           return Thread::lookup($threadId);
         }
         else
         {
-          var_dump('new thread');
+          // var_dump('new thread');
           $thread = Thread::create($vars);
           $thread->save();
           return $thread->id;
@@ -534,6 +531,23 @@ class TicketManager extends Module {
       }
       return rtrim($form_ids, ',');
 
+    }
+
+    private function getFormName($form_id)
+    {
+      $row = Form::objects()
+          ->filter(array(
+            'id'=>$form_id))
+          ->values_flat('title');
+
+          if(count($row) != 0)
+          {
+            for ($i=0; $i<count($row); $i++)
+            {
+              $form_names .= implode(',', $row[$i]) . ',';
+            }
+          }
+          return rtrim($form_names, ',');
     }
 
     //methods for related object
