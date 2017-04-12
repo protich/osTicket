@@ -240,15 +240,37 @@ if($ticket->isOverdue())
             <table border="0" cellspacing="" cellpadding="4" width="100%">
                 <tr>
                     <th width="100"><?php echo __('Status');?>:</th>
-                    <td><?php echo ($S = $ticket->getStatus()) ? $S->display() : ''; ?></td>
+                    <td>
+                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+
+                          href="#tickets/<?php echo $ticket->getId(); ?>/status/<?php echo $ticket->getStatusId(); ?>/edit">
+                          <?php echo $ticket->getStatus(); ?>
+                      </a>
+                    </td>
                 </tr>
                 <tr>
                     <th><?php echo __('Priority');?>:</th>
-                    <td><?php echo $ticket->getPriority(); ?></td>
+                    <td>
+                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+
+                          href="#tickets/<?php echo $ticket->getId(); ?>/field/22/edit">
+                          <?php echo $ticket->getPriority(); ?>
+                      </a>
+                    </td>
                 </tr>
                 <tr>
                     <th><?php echo __('Department');?>:</th>
-                    <td><?php echo Format::htmlchars($ticket->getDeptName()); ?></td>
+                    <?php
+                    if ($role->hasPerm(TicketModel::PERM_TRANSFER)) {?>
+                      <td>
+                        <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                            data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+                            href="#tickets/<?php echo $ticket->getId(); ?>/dept/<?php echo $ticket->getDeptId(); ?>/edit"><?php echo Format::htmlchars($ticket->getDeptName()); ?>
+                        </a>
+                      </td>
+                    <?php } ?>
                 </tr>
                 <tr>
                     <th><?php echo __('Create Date');?>:</th>
@@ -351,14 +373,18 @@ if($ticket->isOverdue())
                     </tr>
 <?php   } # end if (user->org) ?>
                 <tr>
-                    <th><?php echo __('Source'); ?>:</th>
-                    <td><?php
-                        echo Format::htmlchars($ticket->getSource());
+                  <th><?php echo __('Source'); ?>:</th>
+                  <td>
+                    <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                        data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
 
-                        if (!strcasecmp($ticket->getSource(), 'Web') && $ticket->getIP())
-                            echo '&nbsp;&nbsp; <span class="faded">('.Format::htmlchars($ticket->getIP()).')</span>';
+                        href="#tickets/<?php echo $ticket->getId(); ?>/source/<?php echo $ticket->getSource() ?>/edit">
+                        <?php echo Format::htmlchars($ticket->getSource());
+                              if (!strcasecmp($ticket->getSource(), 'Web') && $ticket->getIP())
+                                  echo '&nbsp;&nbsp; <span class="faded">('.Format::htmlchars($ticket->getIP()).')</span>';
                         ?>
-                    </td>
+                    </a>
+                  </td>
                 </tr>
             </table>
         </td>
@@ -399,13 +425,27 @@ if($ticket->isOverdue())
                 } ?>
                 <tr>
                     <th><?php echo __('SLA Plan');?>:</th>
-                    <td><?php echo $sla?Format::htmlchars($sla->getName()):'<span class="faded">&mdash; '.__('None').' &mdash;</span>'; ?></td>
+                    <td>
+                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+
+                          href="#tickets/<?php echo $ticket->getId(); ?>/sla/<?php echo $sla->getId(); ?>/edit">
+                          <?php echo $sla?Format::htmlchars($sla->getName()):'<span class="faded">&mdash; '.__('None').' &mdash;</span>'; ?>
+                      </a>
+                    </td>
                 </tr>
                 <?php
                 if($ticket->isOpen()){ ?>
                 <tr>
                     <th><?php echo __('Due Date');?>:</th>
-                    <td><?php echo Format::datetime($ticket->getEstDueDate()); ?></td>
+                    <td>
+                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+
+                          href="#tickets/<?php echo $ticket->getId(); ?>/duedate/1/edit">
+                          <?php echo Format::datetime($ticket->getEstDueDate()); ?>
+                      </a>
+                    <td>
                 </tr>
                 <?php
                 }else { ?>
@@ -422,7 +462,14 @@ if($ticket->isOverdue())
             <table cellspacing="0" cellpadding="4" width="100%" border="0">
                 <tr>
                     <th width="100"><?php echo __('Help Topic');?>:</th>
-                    <td><?php echo Format::htmlchars($ticket->getHelpTopic()); ?></td>
+                    <td>
+                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+
+                          href="#tickets/<?php echo $ticket->getId(); ?>/topic/<?php echo $ticket->getTopicId(); ?>/edit">
+                          <?php echo $ticket->getHelpTopic(); ?>
+                      </a>
+                    </td>
                 </tr>
                 <tr>
                     <th nowrap><?php echo __('Last Message');?>:</th>
@@ -451,7 +498,7 @@ foreach (DynamicFormEntry::forTicket($ticket->getId()) as $form) {
     foreach($answers as $a) {
         if (!($v = $a->display()))
             continue;
-        $displayed[] = array($a->getLocal('label'), $v);
+        $displayed[] = array($a->getLocal('label'), $v, $a->getLocal('id'));
     }
     if (count($displayed) == 0)
         continue;
@@ -463,15 +510,16 @@ foreach (DynamicFormEntry::forTicket($ticket->getId()) as $form) {
     <tbody>
 <?php
     foreach ($displayed as $stuff) {
-        list($label, $v) = $stuff;
+        list($label, $v, $id) = $stuff;
 ?>
         <tr>
-            <td width="200"><?php
-echo Format::htmlchars($label);
-            ?>:</th>
-            <td><?php
-echo $v;
-            ?></td>
+            <td width="200"><?php echo Format::htmlchars($label); ?>:</th>
+            <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+
+                href="#tickets/<?php echo $ticket->getId(); ?>/field/<?php echo $id; ?>/edit">
+                <?php echo $v; ?>
+            </a>
         </tr>
 <?php } ?>
     </tbody>
