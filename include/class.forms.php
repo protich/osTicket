@@ -4486,6 +4486,232 @@ class TransferForm extends Form {
     }
 }
 
+//adriane
+class TicketUpdateForm extends Form {
+
+  static $id = 'ticket_update';
+  var $_custom = null;
+
+  function __construct($source=null, $options=array()) {
+      parent::__construct($source, $options);
+  }
+
+    function getFields() {
+
+      if ($this->fields)
+          return $this->fields;
+
+      // var_dump('this field is ');
+      // var_dump($this->options['field']);
+
+      // var_dump('this source is');
+      // var_dump($this->_source);
+
+      switch ($this->options['field']) {
+        case 'Duedate':
+        $fields = array(
+            'duedate'  =>  new DatetimeField(array(
+                'id' => 3,
+                'label' => __('Due Date'),
+                'required' => false,
+                'configuration' => array(
+                    'min' => Misc::gmtime(),
+                    'time' => true,
+                    'gmt' => false,
+                    'future' => true,
+                    ),
+                )),
+            'comments' => new TextareaField(array(
+                    'id' => 2,
+                    'label'=> '',
+                    'required'=>false,
+                    'default'=>'',
+                    'configuration' => array(
+                        'html' => true,
+                        'size' => 'small',
+                        'placeholder' => __('Optional reason for the update'),
+                        ),
+                    )
+                ),
+            );
+
+          // var_dump('is it due date');
+
+          break;
+        default:
+          $choices = $this->options['choices'];
+
+          // 'choices' => array('phone'=>__('Phone Number'),'email'=>__('Email Address'),
+          //     'ip'=>__('IP Address'), 'number'=>__('Number'),
+          //     'regex'=>__('Custom (Regular Expression)'), ''=>__('None')))),
+
+          $fields = array(
+            lcfirst($this->options['field']) => new ChoiceField(array(
+                    'id'=>1,
+                    'label' => __($this->options['field']),
+                    'flags' => hexdec(0X450F3),
+                    'required' => true,
+                    'choices' => $choices,
+                    // 'choices' => array('Open'=> $choices),
+                    'validator-error' => __('Selection is required'),
+                  )
+              ),
+              'comments' => new TextareaField(array(
+                      'id' => 2,
+                      'label'=> '',
+                      'required'=>false,
+                      'default'=>'',
+                      'configuration' => array(
+                          'html' => true,
+                          'size' => 'small',
+                          'placeholder' => __('Optional reason for the update'),
+                          ),
+                      )
+                  ),
+            );
+
+      }
+
+        $this->setFields($fields);
+
+        return $this->fields;
+    }
+
+    function render($options) {
+
+        switch(strtolower($options['template'])) {
+        case 'simple':
+            $inc = STAFFINC_DIR . 'templates/dynamic-form-simple.tmpl.php';
+            break;
+        default:
+            throw new Exception(sprintf(__('%s: Unknown template style %s'),
+                        get_class(), $options['template']));
+        }
+
+        $form = $this;
+        include $inc;
+
+    }
+
+    function getVal() {
+        $object_name = $this->options['field'];
+        if (!isset($this->_custom))
+        {
+          // var_dump('passing in');
+          // var_dump(lcfirst($object_name));
+            if (($id = $this->getField(lcfirst($object_name))->getClean()));
+            {
+              // var_dump('got something');
+              // var_dump($id);
+              switch ($object_name) {
+                case 'Status':
+                  $this->_custom = TicketStatus::lookup($id);
+                  break;
+
+                case 'Source':
+                  $this->_custom = $id;
+                  break;
+
+                case 'Duedate':
+                  // var_dump('due date case');
+                  $id = $this->getField('duedate')->getClean();
+                  // var_dump($id);
+                  $this->_custom = $id;
+                  break;
+
+                default:
+                  $this->_custom = $object_name::lookup($id);
+              }
+
+
+            }
+
+        }
+        // var_dump('val field will have is');
+        // var_dump($this->_custom);
+        return $this->_custom;
+    }
+
+}
+
+//adriane
+class CustomUpdateForm extends AbstractForm {
+
+    static $id = 'custom_update';
+    // var $_field = null;
+    var $_fields = array(
+      'cust_field' => '',
+      'comments' => ''
+    );
+
+    function setCustomField($field) {
+      $this->_field['cust_field'] = $field;
+    }
+
+    function buildFields() {
+      // var_dump('field is ');
+      // var_dump($this->options['cust_field']);
+
+      $fields = array(
+        'cust_field' => $this->options['cust_field'],
+        'comments' => new TextareaField(array(
+                'id' => 2,
+                'label'=> '',
+                'required'=>false,
+                'default'=>'',
+                'configuration' => array(
+                    'html' => true,
+                    'size' => 'small',
+                    'placeholder' => __('Optional reason for the update'),
+                    ),
+                )
+            ));
+
+        return $fields;
+    }
+
+    // function isValid($include=false) {
+    //
+    //     if (!parent::isValid($include))
+    //         return false;
+    //
+    //     // Do additional validations
+    //     // if (!($custom_field = $this->getCustomField()))
+    //     //     $this->getField('cust_field')->addError(
+    //     //             __('Unknown value'));
+    //
+    //     return !$this->errors();
+    // }
+
+    function render($options) {
+
+        switch(strtolower($options['template'])) {
+        case 'simple':
+            $inc = STAFFINC_DIR . 'templates/dynamic-form-simple.tmpl.php';
+            break;
+        default:
+            throw new Exception(sprintf(__('%s: Unknown template style %s'),
+                        get_class(), $options['template']));
+        }
+
+        $form = $this;
+        include $inc;
+
+    }
+
+    // function getCustomField() {
+    //     if (!isset($this->_field)) {
+    //         // if (($id = $this->getField('cust_field')->getClean()))
+    //           // $this->_field = $value;
+    //     }
+    //
+    //     // var_dump('anything ere?');
+    //     // var_dump($this->_field);
+    //     return $this->_field;
+    // }
+}
+
+
 /**
  * FieldUnchanged
  *

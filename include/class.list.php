@@ -1465,7 +1465,7 @@ implements CustomListItem, TemplateVariable {
         return $status;
     }
 
-    static function status_options() {
+    static function status_options($inline=false) {
         include(STAFFINC_DIR . 'templates/status-options.tmpl.php');
     }
 }

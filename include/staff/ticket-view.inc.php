@@ -240,37 +240,53 @@ if($ticket->isOverdue())
             <table border="0" cellspacing="" cellpadding="4" width="100%">
                 <tr>
                     <th width="100"><?php echo __('Status');?>:</th>
+                    <?php
+                         if ($role->hasPerm(TicketModel::PERM_CLOSE)) {?>
                     <td>
-                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                      <a class="tickets-action" data-dropdown="#action-dropdown-statuses" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Change Status'); ?>"
                           data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
-
-                          href="#tickets/<?php echo $ticket->getId(); ?>/status/<?php echo $ticket->getStatusId(); ?>/edit">
+                          href="#statuses">
                           <?php echo $ticket->getStatus(); ?>
                       </a>
                     </td>
+                      <?php } else { ?>
+                          <td><?php echo ($S = $ticket->getStatus()) ? $S->display() : ''; ?></td>
+                      <?php } ?>
                 </tr>
                 <tr>
                     <th><?php echo __('Priority');?>:</th>
-                    <td>
-                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
-                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+                      <?php
+                         if ($role->hasPerm(TicketModel::PERM_EDIT)) {?>
+                           <td>
+                             <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                                 data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
 
-                          href="#tickets/<?php echo $ticket->getId(); ?>/field/22/edit">
-                          <?php echo $ticket->getPriority(); ?>
-                      </a>
-                    </td>
+                                 href="#tickets/<?php echo $ticket->getId(); ?>/field/22/edit">
+                                 <?php echo $ticket->getPriority(); ?>
+                             </a>
+                           </td>
+                      <?php } else { ?>
+                           <td><?php echo $ticket->getPriority(); ?></td>
+                      <?php } ?>
                 </tr>
                 <tr>
                     <th><?php echo __('Department');?>:</th>
                     <?php
                     if ($role->hasPerm(TicketModel::PERM_TRANSFER)) {?>
                       <td>
-                        <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                        <!-- <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
                             data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
                             href="#tickets/<?php echo $ticket->getId(); ?>/dept/<?php echo $ticket->getDeptId(); ?>/edit"><?php echo Format::htmlchars($ticket->getDeptName()); ?>
+                        </a> -->
+                        <a class="ticket-action" id="ticket-transfer" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Transfer'); ?>"
+                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+                          href="#tickets/<?php echo $ticket->getId(); ?>/transfer"><?php echo Format::htmlchars($ticket->getDeptName()); ?>
                         </a>
                       </td>
-                    <?php } ?>
+                    <?php
+                  }else {?>
+                    <td><?php echo Format::htmlchars($ticket->getDeptName()); ?></td>
+                  <?php } ?>
                 </tr>
                 <tr>
                     <th><?php echo __('Create Date');?>:</th>
@@ -374,7 +390,9 @@ if($ticket->isOverdue())
 <?php   } # end if (user->org) ?>
                 <tr>
                   <th><?php echo __('Source'); ?>:</th>
-                  <td>
+                  <?php
+                         if ($role->hasPerm(TicketModel::PERM_EDIT)) {?>
+                           <td>
                     <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
                         data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
 
@@ -385,6 +403,15 @@ if($ticket->isOverdue())
                         ?>
                     </a>
                   </td>
+                      <?php } else { ?>
+                           <td><?php
+                        echo Format::htmlchars($ticket->getSource());
+
+                        if (!strcasecmp($ticket->getSource(), 'Web') && $ticket->getIP())
+                            echo '&nbsp;&nbsp; <span class="faded">('.Format::htmlchars($ticket->getIP()).')</span>';
+                        ?>
+                    </td>
+                      <?php } ?>
                 </tr>
             </table>
         </td>
@@ -399,14 +426,32 @@ if($ticket->isOverdue())
                 if($ticket->isOpen()) { ?>
                 <tr>
                     <th width="100"><?php echo __('Assigned To');?>:</th>
-                    <td>
-                        <?php
+                    <?php
+            // Assign
+            if ($ticket->isOpen() && $role->hasPerm(TicketModel::PERM_ASSIGN)) {?>
+            <td>
+ 				            <a class="ticket-action" id="ticket-assign"
+                    data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+                    href="#tickets/<?php echo $ticket->getId(); ?>/assign">
+                    <?php
                         if($ticket->isAssigned())
                             echo Format::htmlchars(implode('/', $ticket->getAssignees()));
                         else
                             echo '<span class="faded">&mdash; '.__('Unassigned').' &mdash;</span>';
-                        ?>
-                    </td>
+                    ?>
+                </a>
+            </td>
+            <?php
+          } else { ?>
+                <td>
+                  <?php
+                  if($ticket->isAssigned())
+                      echo Format::htmlchars(implode('/', $ticket->getAssignees()));
+                  else
+                      echo '<span class="faded">&mdash; '.__('Unassigned').' &mdash;</span>';
+                  ?>
+                </td>
+          <?php } ?>
                 </tr>
                 <?php
                 } else { ?>
@@ -425,7 +470,9 @@ if($ticket->isOverdue())
                 } ?>
                 <tr>
                     <th><?php echo __('SLA Plan');?>:</th>
-                    <td>
+                    <?php
+                         if ($role->hasPerm(TicketModel::PERM_EDIT)) {?>
+                           <td>
                       <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
                           data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
 
@@ -433,12 +480,17 @@ if($ticket->isOverdue())
                           <?php echo $sla?Format::htmlchars($sla->getName()):'<span class="faded">&mdash; '.__('None').' &mdash;</span>'; ?>
                       </a>
                     </td>
+                      <?php } else { ?>
+                           <td><?php echo $sla?Format::htmlchars($sla->getName()):'<span class="faded">&mdash; '.__('None').' &mdash;</span>'; ?></td>
+                      <?php } ?>
                 </tr>
                 <?php
                 if($ticket->isOpen()){ ?>
                 <tr>
                     <th><?php echo __('Due Date');?>:</th>
-                    <td>
+                    <?php
+                         if ($role->hasPerm(TicketModel::PERM_EDIT)) {?>
+                           <td>
                       <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
                           data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
 
@@ -446,6 +498,9 @@ if($ticket->isOverdue())
                           <?php echo Format::datetime($ticket->getEstDueDate()); ?>
                       </a>
                     <td>
+                      <?php } else { ?>
+                           <td><?php echo Format::datetime($ticket->getEstDueDate()); ?></td>
+                      <?php } ?>
                 </tr>
                 <?php
                 }else { ?>
@@ -462,14 +517,19 @@ if($ticket->isOverdue())
             <table cellspacing="0" cellpadding="4" width="100%" border="0">
                 <tr>
                     <th width="100"><?php echo __('Help Topic');?>:</th>
-                    <td>
-                      <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
-                          data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+                      <?php
+                           if ($role->hasPerm(TicketModel::PERM_EDIT)) {?>
+                             <td>
+                        <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                            data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
 
-                          href="#tickets/<?php echo $ticket->getId(); ?>/topic/<?php echo $ticket->getTopicId(); ?>/edit">
-                          <?php echo $ticket->getHelpTopic(); ?>
-                      </a>
-                    </td>
+                            href="#tickets/<?php echo $ticket->getId(); ?>/topic/<?php echo $ticket->getTopicId(); ?>/edit">
+                            <?php echo $ticket->getHelpTopic(); ?>
+                        </a>
+                      </td>
+                        <?php } else { ?>
+                             <td><?php echo Format::htmlchars($ticket->getHelpTopic()); ?></td>
+                        <?php } ?>
                 </tr>
                 <tr>
                     <th nowrap><?php echo __('Last Message');?>:</th>
@@ -513,13 +573,24 @@ foreach (DynamicFormEntry::forTicket($ticket->getId()) as $form) {
         list($label, $v, $id) = $stuff;
 ?>
         <tr>
-            <td width="200"><?php echo Format::htmlchars($label); ?>:</th>
-            <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
-                data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
+          <?php if ($role->hasPerm(TicketModel::PERM_EDIT)) {?>
+            <td width="200"><?php echo Format::htmlchars($label); ?>:</th> </td>
+            <td>
+              <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
+                  data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
 
-                href="#tickets/<?php echo $ticket->getId(); ?>/field/<?php echo $id; ?>/edit">
+                  href="#tickets/<?php echo $ticket->getId(); ?>/field/<?php echo $id; ?>/edit">
+                  <?php echo $v; ?>
+              </a>
+             </td>
+            <?php } else { ?>
+              <td width="200">
+                  <?php echo Format::htmlchars($label);?>:</th>
+              </td>
+              <td>
                 <?php echo $v; ?>
-            </a>
+              </td>
+                  <?php } ?>
         </tr>
 <?php } ?>
     </tbody>

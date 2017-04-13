@@ -30,6 +30,7 @@ foreach (TicketStatusList::getStatuses(
 
 if (!$nextStatuses)
     return;
+
 ?>
 
 <span
@@ -37,8 +38,18 @@ if (!$nextStatuses)
     data-dropdown="#action-dropdown-statuses" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Change Status'); ?>">
     <i class="icon-caret-down pull-right"></i>
     <a class="tickets-action"
-        href="#statuses"><i
-        class="icon-flag"></i></a>
+        href="#statuses">
+        <!-- <i class="icon-flag"></i> -->
+        <?php // Status change options
+        if($inline == true)
+        {
+          echo $ticket->getStatus();
+        }
+        else
+        {?>
+          <i class="icon-flag"></i>
+        <?php } ?>
+    </a>
 </span>
 <div id="action-dropdown-statuses"
     class="action-dropdown anchor-right">

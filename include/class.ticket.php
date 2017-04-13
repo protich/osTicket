@@ -945,6 +945,100 @@ implements RestrictedAccess, Threadable {
         return TransferForm::instantiate($source);
     }
 
+    //adriane
+    function getTicketUpdateForm($object, $oid, $source=null) {
+        // var_dump('in getTicketUpdateForm');
+
+        switch ($object)
+        {
+          case 'dept':
+            $choices = Dept::getDepartments();
+            break;
+
+          case 'sla':
+            $choices = SLA::getSLAs();
+            break;
+
+          case 'topic':
+            $choices = Topic::getHelpTopics();
+            break;
+
+          case 'source':
+            $choices = Ticket::getSources();
+            break;
+
+          case 'status':
+            $statuses = TicketStatus::objects();
+            foreach ($statuses as $status)
+            {
+              $choices[] = array($status->getId() => $status->getName()); //pick right val but puts ids in list
+              // $choices[] = array($status->getName()); //wont pick right val
+            }
+            // $choices = $statuses;
+            // $choices = TicketStatusList::getStatuses();
+            break;
+        }
+
+        // var_dump('choices are');
+        // var_dump($choices);
+
+
+        //get the correct form with the currently stored data (source)
+        if ($object == 'duedate')
+        {
+          if (!$source)
+            $source = array($object => Format::datetime($this->getEstDueDate()));
+        }
+        else
+        {
+          if (!$source)
+            $source = array($object => array($oid));
+        }
+
+
+        // var_dump('in class.tick, source is');
+        // var_dump($source);
+
+        $type = array('field' => ucwords($object), 'choices' => $choices);
+        // $form = TicketUpdateForm::instantiate($source, $type);
+
+        return TicketUpdateForm::instantiate($source, $type);
+    }
+
+    //adriane
+    function getFieldUpdateForm($fid, $source=null) {
+      // var_dump('made it in');
+      // var_dump($fid);
+      // var_dump('the fields id is ' . $fid);
+
+      foreach (DynamicFormEntry::forTicket($this->getId()) as $form)
+      {
+        $fields = $form->getFields();
+      }
+      foreach ($fields as $field)
+      {
+        // var_dump($field->getId());
+        if($field->getId() == $fid)
+        {
+          // var_dump('field I want is ');
+          // var_dump($field->getAnswer()->value);
+          $name = $field->get('name') ?: 'field_'.$field->get('id');
+          if(!$field->get('name'))
+          {
+            // var_dump('field has no name');
+            $field->set('name', $name);
+          }
+
+          $options = array('cust_field' => $field);
+          break;
+        }
+       }
+
+      $form = CustomUpdateForm::instantiate($source, $options);
+
+      return $form;
+    }
+
     function getDynamicFields($criteria=array()) {
 
         $fields = DynamicFormField::objects()->filter(array(
@@ -2111,6 +2205,264 @@ implements RestrictedAccess, Threadable {
          }
 
          return true;
+    }
+
+    //adriane
+    function inline_tedit($object, $form, &$errors, $alert=true) {
+        global $thisstaff, $cfg;
+        // var_dump($form);
+        $form_type = get_class($form);
+        // var_dump('form type is ' . $form_type);
+
+        // Check if staff can do the edit
+        if (!$this->checkStaffPerm($thisstaff, Ticket::PERM_EDIT))
+            return false;
+
+        switch ($object) {
+          case 'sla':
+            $uobject = 'SLA';
+            $instance = 'SLA';
+            break;
+
+          case 'status':
+            $uobject = ucwords($object);
+            $instance = 'TicketStatus';
+            break;
+
+          default:
+            $uobject = ucwords($object);
+            $instance = ucwords($object);
+            break;
+        }
+
+        // $getVar = 'get' . $uobject;
+        // var_dump('getvar is ' . $getVar);
+
+        // if(is_callable('$this->$getVar', true))
+          // $current = call_user_func(array($this, $getVar));
+        $current = $this->get($object);
+          // $current = $this->getEstDueDate();
+
+          // var_dump('old is ');
+          // var_dump($current);
+
+        // if(is_callable('$form->$getVar', true))
+        //   $new = call_user_func(array($form, $getVar));
+        $new = $form->getVal();
+          // $new = $form->getDueDate($this);
+          // $new = $form->getTSource();
+
+        // var_dump('new is ');
+        // var_dump($new);
+
+        // var_dump('new state is ');
+        // var_dump($new->getState());
+
+        // var_dump('this is a ' . $uobject);
+
+        $noID = false;
+        if($object == 'source' || $object == 'duedate')
+          $noID = true;
+
+        if (($noID && !$new) || (!$noID && !($new instanceof $instance)))
+            $errors[$object] = __('Field selection required');
+        elseif (($noID && $new == $current) || (!$noID && $new->getid() == call_user_func(array($this, 'get' . $uobject . 'Id'))))
+            $errors[$object] = sprintf(
+                    __('%s is already assigned to this value'), __($uobject));
+        else {
+          if($object == 'source')
+          {
+            $this->source = $new;
+          }
+          elseif ($object == 'duedate')
+          {
+            $this->duedate = $new
+                ? date('Y-m-d G:i',Misc::dbtime($new))
+                : null;
+
+            $this->est_duedate = $new
+                ? date('Y-m-d G:i',Misc::dbtime($new))
+                : null;
+          }
+          else {
+            $objId = $object . '_id';
+            $this->$objId = $new->getId();
+          }
+        }
+
+        // var_dump('still here 1');
+        // var_dump('errors are');
+        // var_dump($errors);
+        if ($errors || !$this->save(true))
+            return false;
+        // var_dump('still here 2');
+
+
+        if(!$noID)
+        {
+          $this->dirty = array($objId => $this->$objId);
+          $changes = array($objId => array($current->getId(), $new->getId()));
+        }
+        else
+        {
+          // var_dump('its a source');
+          $changes = array($object => array($current, $new));
+        }
+
+        if ($changes)
+        {
+          switch ($object) {
+            case 'status':
+              $state = $new->getState();
+              if($state == 'open')
+                $state = 'reopened';
+              $this->logEvent($state, $changes);
+              break;
+
+            case 'dept':
+              $state = 'transferred';
+              $this->logEvent($state, $changes);
+              break;
+
+            default:
+              $this->logEvent('edited', $changes);
+              break;
+          }
+
+        }
+
+        // Post internal note if any
+        $note = null;
+        $comments = $form->getField('comments')->getClean();
+        if ($comments) {
+          if(!$noID)
+          {
+            $title = sprintf(__('%1$s updated from %2$s to %3$s'),
+                    __('Ticket'),
+                   $current->getName(),
+                    $new->getName());
+          }
+          else
+          {
+            $title = sprintf(__('%1$s updated from %2$s to %3$s'),
+                    __('Ticket'),
+                   $current,
+                    $new);
+          }
+
+
+            $_errors = array();
+            $note = $this->postNote(
+                    array('note' => $comments, 'title' => $title),
+                    $_errors, $thisstaff, false);
+        }
+
+        return true;
+    }
+
+    //adriane
+    function inline_fedit($fid, $form, &$errors, $alert=true) {
+        global $thisstaff, $cfg;
+
+        // Check if staff can do the edit
+        if (!$this->checkStaffPerm($thisstaff, Ticket::PERM_EDIT))
+            return false;
+
+         //get the ticket's fields
+         foreach (DynamicFormEntry::forTicket($this->getId()) as $tform)
+         {
+           $nfields = $tform->getFields();
+         }
+
+         //find the field being edited
+         foreach ($nfields as $nfield)
+         {
+           if($nfield->getId() == $fid)
+           {
+            //get old and new values
+            $old = $nfield->getAnswer()->value;
+            $old_id = $nfield->getAnswer()->value_id;
+            $new = $nfield->getWidget()->value;
+            $a = $nfield->getAnswer();
+
+            // var_dump('old is ');
+            // var_dump($old);
+
+            // var_dump('new is');
+            // var_dump($new);
+
+            if ($new == $old)
+                $errors['cust_field'] = sprintf(
+                        __('%s is already assigned this value'), __($nfield->get('label')));
+            else {
+              //set the new values, format for certain field types
+              switch (get_class($nfield))
+              {
+                case 'DatetimeField':
+                  $new = $nfield->to_database($new);
+                  break;
+
+                case 'ChoiceField':
+                  $new = json_encode($new);
+                  break;
+              }
+
+              if($fid == 22)
+              {
+                $priority = $form->getField('priority')->getClean();
+                $a->setValue($priority, $priority->getId());
+                $b = $a->getValue();
+                $a->save();
+              }
+              else
+              {
+                $a->setValue($new);
+                $a->save();
+              }
+
+             }
+            //  var_dump('errors are ');
+            //  var_dump($errors);
+            }
+
+          }
+
+          if ($errors || !$this->save(true))
+              return false;
+
+        //make thread event for fields edited
+        if($fid == 22)
+        {
+          $changes = array('fields' =>
+                            array('22' =>
+                              array(array($old, $old_id),
+                              array(ucwords($priority->priority), $priority->priority_id))
+                                )
+                              );
+
+          $this->logEvent('edited', $changes);
+        }
+        else {
+          $changes = array("fields" => array($fid => array($old, $new)));
+          $this->logEvent('edited', $changes);
+        }
+
+        // Post internal note if any
+        $note = null;
+        $comments = $form->getField('comments')->getClean();
+        if ($comments) {
+            $title = sprintf(__('%1$s updated from %2$s to %3$s'),
+                    __('Ticket'),
+                    $old,
+                    $new);
+
+            $_errors = array();
+            $note = $this->postNote(
+                    array('note' => $comments, 'title' => $title),
+                    $_errors, $thisstaff, false);
+        }
+
+        return true;
     }
 
     function claim(ClaimForm $form, &$errors) {
