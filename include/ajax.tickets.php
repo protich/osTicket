@@ -453,10 +453,9 @@ class TicketsAjaxAPI extends AjaxController {
       // var_dump($errors);
       // var_dump($form->getField('status'));
 
-      // if ($_POST && $form->isValid()) {
       if ($_POST) {
           // var_dump('post and is valid');
-          if ($ticket->inline_tedit($field, $form, $errors)) {
+          if ($ticket->inline_ticket_edit($field, $form, $errors)) {
                 $_SESSION['::sysmsgs']['msg'] = sprintf(
                         __('%s successfully'),
                         sprintf(
@@ -499,14 +498,13 @@ class TicketsAjaxAPI extends AjaxController {
 
       $form = $ticket->getFieldUpdateForm($fid, $_POST);
 
-      // // var_dump('form valid? ' . $form->isValid());
       // var_dump('field is ' . $field . ', oid is ' . $oid);
       // var_dump('the form in ajax.tick is ');
       // var_dump($form);
       // // var_dump($errors);
       if ($_POST) {
           // var_dump('post and is valid');
-          if ($ticket->inline_fedit($fid, $form, $errors)) {
+          if ($ticket->inline_form_edit($fid, $form, $errors)) {
                 $_SESSION['::sysmsgs']['msg'] = sprintf(
                         __('%s successfully'),
                         sprintf(

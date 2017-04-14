@@ -216,7 +216,9 @@ if($ticket->isOverdue())
                 data-placement="bottom" data-toggle="tooltip"
                 title="<?php echo __('Post Internal Note'); ?>"><i class="icon-file-text"></i></a>
                 <?php // Status change options
+                if ($role->hasPerm(TicketModel::PERM_CLOSE)) {
                 echo TicketStatus::status_options();
+                }
                 ?>
            </div>
         <div class="flush-left">
@@ -274,10 +276,6 @@ if($ticket->isOverdue())
                     <?php
                     if ($role->hasPerm(TicketModel::PERM_TRANSFER)) {?>
                       <td>
-                        <!-- <a class="ticket-action" id="inline-update" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Update'); ?>"
-                            data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
-                            href="#tickets/<?php echo $ticket->getId(); ?>/dept/<?php echo $ticket->getDeptId(); ?>/edit"><?php echo Format::htmlchars($ticket->getDeptName()); ?>
-                        </a> -->
                         <a class="ticket-action" id="ticket-transfer" data-placement="bottom" data-toggle="tooltip" title="<?php echo __('Transfer'); ?>"
                           data-redirect="tickets.php?id=<?php echo $ticket->getId(); ?>"
                           href="#tickets/<?php echo $ticket->getId(); ?>/transfer"><?php echo Format::htmlchars($ticket->getDeptName()); ?>

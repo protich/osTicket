@@ -1,6 +1,5 @@
 <!-- Help Topic Edit Modal -->
 
-<!-- adriane -->
 <?php
 global $cfg;
 

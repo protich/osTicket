@@ -4541,10 +4541,6 @@ class TicketUpdateForm extends Form {
         default:
           $choices = $this->options['choices'];
 
-          // 'choices' => array('phone'=>__('Phone Number'),'email'=>__('Email Address'),
-          //     'ip'=>__('IP Address'), 'number'=>__('Number'),
-          //     'regex'=>__('Custom (Regular Expression)'), ''=>__('None')))),
-
           $fields = array(
             lcfirst($this->options['field']) => new ChoiceField(array(
                     'id'=>1,
@@ -4552,7 +4548,6 @@ class TicketUpdateForm extends Form {
                     'flags' => hexdec(0X450F3),
                     'required' => true,
                     'choices' => $choices,
-                    // 'choices' => array('Open'=> $choices),
                     'validator-error' => __('Selection is required'),
                   )
               ),
@@ -4604,9 +4599,9 @@ class TicketUpdateForm extends Form {
               // var_dump('got something');
               // var_dump($id);
               switch ($object_name) {
-                case 'Status':
-                  $this->_custom = TicketStatus::lookup($id);
-                  break;
+                // case 'Status':
+                //   $this->_custom = TicketStatus::lookup($id);
+                //   break;
 
                 case 'Source':
                   $this->_custom = $id;
@@ -4670,19 +4665,6 @@ class CustomUpdateForm extends AbstractForm {
         return $fields;
     }
 
-    // function isValid($include=false) {
-    //
-    //     if (!parent::isValid($include))
-    //         return false;
-    //
-    //     // Do additional validations
-    //     // if (!($custom_field = $this->getCustomField()))
-    //     //     $this->getField('cust_field')->addError(
-    //     //             __('Unknown value'));
-    //
-    //     return !$this->errors();
-    // }
-
     function render($options) {
 
         switch(strtolower($options['template'])) {
@@ -4699,16 +4681,6 @@ class CustomUpdateForm extends AbstractForm {
 
     }
 
-    // function getCustomField() {
-    //     if (!isset($this->_field)) {
-    //         // if (($id = $this->getField('cust_field')->getClean()))
-    //           // $this->_field = $value;
-    //     }
-    //
-    //     // var_dump('anything ere?');
-    //     // var_dump($this->_field);
-    //     return $this->_field;
-    // }
 }
 
 

@@ -967,21 +967,10 @@ implements RestrictedAccess, Threadable {
             $choices = Ticket::getSources();
             break;
 
-          case 'status':
-            $statuses = TicketStatus::objects();
-            foreach ($statuses as $status)
-            {
-              $choices[] = array($status->getId() => $status->getName()); //pick right val but puts ids in list
-              // $choices[] = array($status->getName()); //wont pick right val
-            }
-            // $choices = $statuses;
-            // $choices = TicketStatusList::getStatuses();
-            break;
         }
 
         // var_dump('choices are');
         // var_dump($choices);
-
 
         //get the correct form with the currently stored data (source)
         if ($object == 'duedate')
@@ -994,7 +983,6 @@ implements RestrictedAccess, Threadable {
           if (!$source)
             $source = array($object => array($oid));
         }
-
 
         // var_dump('in class.tick, source is');
         // var_dump($source);
@@ -2208,7 +2196,7 @@ implements RestrictedAccess, Threadable {
     }
 
     //adriane
-    function inline_tedit($object, $form, &$errors, $alert=true) {
+    function inline_ticket_edit($object, $form, &$errors, $alert=true) {
         global $thisstaff, $cfg;
         // var_dump($form);
         $form_type = get_class($form);
@@ -2224,34 +2212,17 @@ implements RestrictedAccess, Threadable {
             $instance = 'SLA';
             break;
 
-          case 'status':
-            $uobject = ucwords($object);
-            $instance = 'TicketStatus';
-            break;
-
           default:
             $uobject = ucwords($object);
             $instance = ucwords($object);
             break;
         }
 
-        // $getVar = 'get' . $uobject;
-        // var_dump('getvar is ' . $getVar);
-
-        // if(is_callable('$this->$getVar', true))
-          // $current = call_user_func(array($this, $getVar));
         $current = $this->get($object);
-          // $current = $this->getEstDueDate();
-
           // var_dump('old is ');
           // var_dump($current);
 
-        // if(is_callable('$form->$getVar', true))
-        //   $new = call_user_func(array($form, $getVar));
         $new = $form->getVal();
-          // $new = $form->getDueDate($this);
-          // $new = $form->getTSource();
-
         // var_dump('new is ');
         // var_dump($new);
 
@@ -2297,71 +2268,41 @@ implements RestrictedAccess, Threadable {
             return false;
         // var_dump('still here 2');
 
+        switch ($object) {
+          case 'duedate':
+            $changes = array($object => array($current, $this->duedate));
+            break;
 
-        if(!$noID)
-        {
-          $this->dirty = array($objId => $this->$objId);
-          $changes = array($objId => array($current->getId(), $new->getId()));
+          case 'source':
+            $changes = array($object => array($current, $new));
+            break;
+
+          default:
+            $this->dirty = array($objId => $this->$objId);
+            $changes = array($objId => array($current->getId(), $new->getId()));
+            break;
         }
-        else
-        {
-          // var_dump('its a source');
-          $changes = array($object => array($current, $new));
-        }
 
-        if ($changes)
-        {
-          switch ($object) {
-            case 'status':
-              $state = $new->getState();
-              if($state == 'open')
-                $state = 'reopened';
-              $this->logEvent($state, $changes);
-              break;
-
-            case 'dept':
-              $state = 'transferred';
-              $this->logEvent($state, $changes);
-              break;
-
-            default:
-              $this->logEvent('edited', $changes);
-              break;
-          }
-
-        }
+        $this->logEvent('edited', $changes);
 
         // Post internal note if any
         $note = null;
         $comments = $form->getField('comments')->getClean();
         if ($comments) {
-          if(!$noID)
-          {
-            $title = sprintf(__('%1$s updated from %2$s to %3$s'),
-                    __('Ticket'),
-                   $current->getName(),
-                    $new->getName());
-          }
-          else
-          {
-            $title = sprintf(__('%1$s updated from %2$s to %3$s'),
-                    __('Ticket'),
-                   $current,
-                    $new);
-          }
+          $title = sprintf(__('%1$s updated'),
+                  __($uobject));
 
-
-            $_errors = array();
-            $note = $this->postNote(
-                    array('note' => $comments, 'title' => $title),
-                    $_errors, $thisstaff, false);
+          $_errors = array();
+          $note = $this->postNote(
+                  array('note' => $comments, 'title' => $title),
+                  $_errors, $thisstaff, false);
         }
 
         return true;
     }
 
     //adriane
-    function inline_fedit($fid, $form, &$errors, $alert=true) {
+    function inline_form_edit($fid, $form, &$errors, $alert=true) {
         global $thisstaff, $cfg;
 
         // Check if staff can do the edit
@@ -2385,42 +2326,66 @@ implements RestrictedAccess, Threadable {
             $new = $nfield->getWidget()->value;
             $a = $nfield->getAnswer();
 
+            //set the new values, format for certain field types
+            switch (get_class($nfield))
+            {
+              case 'DatetimeField':
+                $new = $nfield->to_database($new);
+                break;
+
+              case 'ChoiceField':
+                $new = json_encode($new);
+                break;
+            }
+
             // var_dump('old is ');
             // var_dump($old);
-
+            //
             // var_dump('new is');
             // var_dump($new);
+
+            $cust_field = $form->getField('cust_field');
+
+            //get field and see if it's an instanceof priority
+            if($cust_field instanceof PriorityField)
+            {
+              $priority = $form->getField('priority')->getClean();
+              $new = $priority->priority_desc;
+
+              // var_dump('the field is');
+              // var_dump($form->getField('cust_field') instanceof PriorityField);
+            }
 
             if ($new == $old)
                 $errors['cust_field'] = sprintf(
                         __('%s is already assigned this value'), __($nfield->get('label')));
             else {
-              //set the new values, format for certain field types
-              switch (get_class($nfield))
-              {
-                case 'DatetimeField':
-                  $new = $nfield->to_database($new);
-                  break;
 
-                case 'ChoiceField':
-                  $new = json_encode($new);
-                  break;
-              }
-
-              if($fid == 22)
+              //set values in form_entry_vals table
+              //make thread event for fields edited
+              if($cust_field instanceof PriorityField)
               {
-                $priority = $form->getField('priority')->getClean();
                 $a->setValue($priority, $priority->getId());
-                $b = $a->getValue();
                 $a->save();
+
+                $changes = array('fields' =>
+                                  array($fid =>
+                                    array(array($old, $old_id),
+                                    array(ucwords($priority->priority), $priority->priority_id))
+                                      )
+                                    );
               }
               else
               {
                 $a->setValue($new);
                 $a->save();
+
+                $changes = array("fields" => array($fid => array($old, $new)));
               }
+              $this->logEvent('edited', $changes);
 
              }
+             break;
             //  var_dump('errors are ');
             //  var_dump($errors);
             }
@@ -2430,31 +2395,13 @@ implements RestrictedAccess, Threadable {
           if ($errors || !$this->save(true))
               return false;
 
-        //make thread event for fields edited
-        if($fid == 22)
-        {
-          $changes = array('fields' =>
-                            array('22' =>
-                              array(array($old, $old_id),
-                              array(ucwords($priority->priority), $priority->priority_id))
-                                )
-                              );
-
-          $this->logEvent('edited', $changes);
-        }
-        else {
-          $changes = array("fields" => array($fid => array($old, $new)));
-          $this->logEvent('edited', $changes);
-        }
-
         // Post internal note if any
         $note = null;
         $comments = $form->getField('comments')->getClean();
         if ($comments) {
-            $title = sprintf(__('%1$s updated from %2$s to %3$s'),
-                    __('Ticket'),
-                    $old,
-                    $new);
+            $title = sprintf(__('%1$s updated'),
+                    __($nfield->get('label'))
+                  );
 
             $_errors = array();
             $note = $this->postNote(
@@ -3878,7 +3825,7 @@ implements RestrictedAccess, Threadable {
             && ($role = $thisstaff->getRole($vars['deptId']))
             && !$role->hasPerm(TicketModel::PERM_CREATE)
         ) {
-            $errors['err'] = sprintf(__('You do not have permission to create a ticket in %s'), __('this department'));
+            $errors['err'] = __('You do not have permission to create a ticket in this department');
             return false;
         }
 
