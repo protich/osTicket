@@ -20,6 +20,8 @@ require_once INCLUDE_DIR . 'class.page.php';
 $section = 'home';
 require(CLIENTINC_DIR.'header.inc.php');
 ?>
+<div class="contentContainer">
+
 <div id="landing_page">
 <?php include CLIENTINC_DIR.'templates/sidebar.tmpl.php'; ?>
 <div class="main-content">
@@ -76,6 +78,7 @@ if ($cats->all()) { ?>
     }
 }
 ?>
+</div>
 </div>
 </div>
 

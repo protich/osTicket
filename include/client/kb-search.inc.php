@@ -1,3 +1,4 @@
+<div class="contentContainer">
 <div class="row">
 <div class="span8">
     <h1><?php echo __('Frequently Asked Questions');?></h1>
@@ -54,5 +55,6 @@ foreach (Category::objects()
         </section>
     </div>
     </div>
+</div>
 </div>
 </div>

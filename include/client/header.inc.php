@@ -80,8 +80,11 @@ if ($lang) {
 <body>
     <div id="container">
         <div id="header">
-            <div class="pull-right flush-right">
-            <p>
+            
+            
+            
+            <div class="pull-right navSignIn">
+            
              <?php
                 if ($thisclient && is_object($thisclient) && $thisclient->isValid()
                     && !$thisclient->isGuest()) {
@@ -103,25 +106,26 @@ if ($lang) {
 <?php
                 }
             } ?>
-            </p>
-            <p>
-<?php
-if (($all_langs = Internationalization::getConfiguredSystemLanguages())
-    && (count($all_langs) > 1)
-) {
-    $qs = array();
-    parse_str($_SERVER['QUERY_STRING'], $qs);
-    foreach ($all_langs as $code=>$info) {
-        list($lang, $locale) = explode('_', $code);
-        $qs['lang'] = $code;
-?>
-        <a class="flag flag-<?php echo strtolower($locale ?: $info['flag'] ?: $lang); ?>"
-            href="?<?php echo http_build_query($qs);
-            ?>" title="<?php echo Internationalization::getLanguageDescription($code); ?>">&nbsp;</a>
-<?php }
-} ?>
-            </p>
+            
+                <?php
+                if (($all_langs = Internationalization::getConfiguredSystemLanguages())
+                    && (count($all_langs) > 1)
+                ) {
+                    $qs = array();
+                    parse_str($_SERVER['QUERY_STRING'], $qs);
+                    foreach ($all_langs as $code=>$info) {
+                        list($lang, $locale) = explode('_', $code);
+                        $qs['lang'] = $code;
+                ?>
+                        <a class="flag flag-<?php echo strtolower($locale ?: $info['flag'] ?: $lang); ?>"
+                            href="?<?php echo http_build_query($qs);
+                            ?>" title="<?php echo Internationalization::getLanguageDescription($code); ?>">&nbsp;</a>
+                <?php }
+                } ?>
+            
             </div>
+
+            
             <a class="pull-left" id="logo" href="<?php echo ROOT_PATH; ?>index.php"
             title="<?php echo __('Support Center'); ?>">
                 <span class="valign-helper"></span>
@@ -145,12 +149,7 @@ if (($all_langs = Internationalization::getConfiguredSystemLanguages())
          <hr>
         <?php
         } ?>
+        
         <div id="content">
 
-         <?php if($errors['err']) { ?>
-            <div id="msg_error"><?php echo $errors['err']; ?></div>
-         <?php }elseif($msg) { ?>
-            <div id="msg_notice"><?php echo $msg; ?></div>
-         <?php }elseif($warn) { ?>
-            <div id="msg_warning"><?php echo $warn; ?></div>
-         <?php } ?>
+         

@@ -31,12 +31,13 @@ if ($info['topicId'] && ($topic=Topic::lookup($info['topicId']))) {
 }
 
 ?>
+<div class="contentContainer">
 <h1><?php echo __('Open a New Ticket');?></h1>
 <p><?php echo __('Please fill in the form below to open a new ticket.');?></p>
 <form id="ticketForm" method="post" action="open.php" enctype="multipart/form-data">
   <?php csrf_token(); ?>
   <input type="hidden" name="a" value="open">
-  <table width="800" cellpadding="1" cellspacing="0" border="0">
+  <table width="100%" cellpadding="1" cellspacing="0" border="0">
     <tbody>
 <?php
         if (!$thisclient) {
@@ -116,9 +117,9 @@ if ($info['topicId'] && ($topic=Topic::lookup($info['topicId']))) {
   </table>
 <hr/>
   <p class="buttons" style="text-align:center;">
-        <input type="submit" value="<?php echo __('Create Ticket');?>">
-        <input type="reset" name="reset" value="<?php echo __('Reset');?>">
-        <input type="button" name="cancel" value="<?php echo __('Cancel'); ?>" onclick="javascript:
+        <input type="submit" class="openBtn" value="<?php echo __('Create Ticket');?>">
+        <input type="reset" class="openBtn" name="reset" value="<?php echo __('Reset');?>">
+        <input type="button" class="openBtn" name="cancel" value="<?php echo __('Cancel'); ?>" onclick="javascript:
             $('.richtext').each(function() {
                 var redactor = $(this).data('redactor');
                 if (redactor && redactor.opts.draftDelete)
@@ -127,3 +128,4 @@ if ($info['topicId'] && ($topic=Topic::lookup($info['topicId']))) {
             window.location.href='index.php';">
   </p>
 </form>
+</div>

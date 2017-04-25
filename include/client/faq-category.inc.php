@@ -1,7 +1,7 @@
 <?php
 if(!defined('OSTCLIENTINC') || !$category || !$category->isPublic()) die('Access Denied');
 ?>
-
+<div class="contentContainer">
 <div class="row">
 <div class="span8">
     <h1><?php echo __('Frequently Asked Questions');?></h1>
@@ -62,5 +62,6 @@ foreach (Topic::objects()
         </section>
     </div>
     </div>
+</div>
 </div>
 </div>

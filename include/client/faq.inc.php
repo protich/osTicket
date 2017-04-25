@@ -4,6 +4,7 @@ if(!defined('OSTCLIENTINC') || !$faq  || !$faq->isPublished()) die('Access Denie
 $category=$faq->getCategory();
 
 ?>
+<div class="contentContainer">
 <div class="row">
 <div class="span8">
 
@@ -62,4 +63,5 @@ if ($faq->getHelpTopics()->count()) { ?>
 </div>
 </div>
 
+</div>
 </div>

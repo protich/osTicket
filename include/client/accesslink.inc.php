@@ -9,6 +9,7 @@ if ($cfg->isClientEmailVerificationRequired())
 else
     $button = __("View Ticket");
 ?>
+<div class="contentContainer">
 <h1><?php echo __('Check Ticket Status'); ?></h1>
 <p><?php
 echo __('Please provide your email address and a ticket number.');
@@ -58,3 +59,4 @@ if ($cfg->getClientRegistrationMode() != 'disabled'
         '<a href="open.php">','</a>');
 } ?>
 </p>
+</div>

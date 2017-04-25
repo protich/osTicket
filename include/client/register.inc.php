@@ -23,7 +23,7 @@ $info = Format::htmlchars(($errors && $_POST)?$_POST:$info);
   <?php csrf_token(); ?>
   <input type="hidden" name="do" value="<?php echo Format::htmlchars($_REQUEST['do']
     ?: ($info['backend'] ? 'import' :'create')); ?>" />
-<table width="800" class="padded">
+<table width="100%" class="padded">
 <tbody>
 <?php
     $cf = $user_form ?: UserForm::getInstance();

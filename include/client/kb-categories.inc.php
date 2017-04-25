@@ -1,3 +1,4 @@
+<div class="contentContainer">
 <div class="row">
 <div class="span8">
 <?php
@@ -64,5 +65,6 @@ foreach ($topics as $T) { ?>
         </section>
     </div>
     </div>
+</div>
 </div>
 </div>
