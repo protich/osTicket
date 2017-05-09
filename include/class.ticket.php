@@ -556,18 +556,18 @@ implements RestrictedAccess, Threadable {
     function getPriorityId() {
         global $cfg;
 
-        if (($a = $this->_answers['priority'])
-            && ($b = $a->getValue())
-        ) {
-            return $b->getId();
-        }
+        if (($priority = $this->getPriority()))
+            return $priority->getId();
+
         return $cfg->getDefaultPriorityId();
     }
 
     function getPriority() {
-        if (($a = $this->_answers['priority']) && ($b = $a->getValue()))
-            return $b->getDesc();
-        return '';
+
+        if (($a = $this->_answers['priority']))
+            return $a->getValue();
+
+        return null;
     }
 
     function getPhoneNumber() {
@@ -1025,6 +1025,70 @@ implements RestrictedAccess, Threadable {
       $form = CustomUpdateForm::instantiate($source, $options);
 
       return $form;
+    }
+
+    function getField($fid) {
+
+        if (is_numeric($fid))
+            return $this->getDymanicFieldById($fid);
+
+        // Special fields
+        switch ($fid) {
+        case 'priority':
+            if (($a = $this->_answers['priority']))
+                return $a->getField();
+            break;
+        case 'sla':
+            return ChoiceField::init(array(
+                        'id' => $fid,
+                        'name' => "{$fid}_id",
+                        'label' => __('SLA Plan'),
+                        'default' => $this->getSLAId(),
+                        'choices' => SLA::getSLAs()
+                        ));
+            break;
+        case 'topic':
+            return ChoiceField::init(array(
+                        'id' => $fid,
+                        'name' => "{$fid}_id",
+                        'label' => __('Help Topic'),
+                        'default' => $this->getTopicId(),
+                        'choices' => Topic::getHelpTopics()
+                        ));
+            break;
+        case 'source':
+            return ChoiceField::init(array(
+                        'id' => $fid,
+                        'name' => 'source',
+                        'label' => __('Ticket Source'),
+                        'default' => $this->getSource(),
+                        'choices' => Ticket::getSources()
+                        ));
+            break;
+        case 'duedate':
+
+            $hint = sprintf(__('Setting a %s will override %s'),
+                    __('Due Date'), __('SLA Plan'));
+            return DateTimeField::init(array(
+                'id' => $fid,
+                'name' => $fid,
+                'default' => Misc::db2gmtime($this->getDueDate()),
+                'label' => __('Due Date'),
+                'hint' => $hint,
+                'configuration' => array(
+                    'time' => true,
+                    'future' => true,
+                    )
+                ));
+        }
+    }
+
+    function getDymanicFieldById($fid) {
+        foreach (DynamicFormEntry::forTicket($this->getId()) as $form) {
+            foreach ($form->getFields() as $field)
+                if ($field->getId() == $fid)
+                    return $field;
+        }
     }
 
     function getDynamicFields($criteria=array()) {
@@ -3172,6 +3236,62 @@ implements RestrictedAccess, Threadable {
         Signal::send('model.updated', $this);
         return $this->save();
     }
+
+
+    function updateField($form, &$errors) {
+        global $thisstaff;
+
+        if (!($field = $form->getField('field')))
+            return null;
+
+        if (!($changes = $field->getChanges()))
+            $errors['field'] = sprintf(__('%s is already assigned this value'),
+                    __($field->getLabel()));
+        else {
+            if ($field->answer) {
+                if (!$field->save())
+                    $errors['field'] =  __('Unable to update field');
+                $changes['fields'] = array($field->getId() => $changes);
+            } else {
+                $val =  $field->getClean();
+                $fid = $field->get('name');
+                var_dump($val, $fid);
+                $this->{$fid} = $val;
+                $changes = array();
+                foreach ($this->dirty as $F=>$old) {
+                    switch ($F) {
+                    case 'topic_id':
+                    case 'user_id':
+                    case 'source':
+                    case 'duedate':
+                    case 'sla_id':
+                        $changes[$F] = array($old, $this->{$F});
+                    }
+                }
+
+                if (!$this->save())
+                    $errors['field'] =  __('Unable to update field');
+            }
+        }
+
+        if ($errors)
+            return false;
+
+        // Record the changes
+        $this->logEvent('edited', $changes);
+        // Log comments (if any)
+
+        if (($comments = $form->getField('comments')->getClean())) {
+            $title = sprintf(__('%s updated'), __($field->getLabel()));
+            $_errors = array();
+            $this->postNote(
+                    array('note' => $comments, 'title' => $title),
+                    $_errors, $thisstaff, false);
+        }
+
+        return true;
+    }
+
 
    /*============== Static functions. Use Ticket::function(params); =============nolint*/
     static function getIdByNumber($number, $email=null, $ticket=false) {

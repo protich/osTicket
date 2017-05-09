@@ -475,53 +475,45 @@ class TicketsAjaxAPI extends AjaxController {
       include STAFFINC_DIR . 'templates/inline-edit.tmpl.php';
   }
 
-  //adriane
-  function inline_form_update($tid, $fid) {
+  function editField($tid, $fid) {
       global $thisstaff;
-      // var_dump('this is fupdate');
-      // var_dump($fid);
+
       if (!($ticket=Ticket::lookup($tid)))
           Http::response(404, __('No such ticket'));
 
       if (!$ticket->checkStaffPerm($thisstaff, Ticket::PERM_EDIT))
           Http::response(403, __('Permission denied'));
+      elseif (!($field=$ticket->getField($fid)))
+          Http::response(404, __('No such field'));
 
       $errors = array();
-
       $info = array(
-              ':title' => sprintf(__('Ticket #%s: %s'),
+              ':title' => sprintf(__('Ticket #%s: %s %s'),
                   $ticket->getNumber(),
-                  __('Update')),
-              ':action' => ('#tickets/'. $tid . '/field/' . $fid . '/edit'),
+                  __('Update'),
+                  $field->getlabel()
+                  ),
+              ':action' => sprintf('#tickets/%d/field/%s/edit',
+                  $ticket->getId(), $field->getId())
               );
-              // var_dump($info);
 
-      $form = $ticket->getFieldUpdateForm($fid, $_POST);
-
-      // var_dump('field is ' . $field . ', oid is ' . $oid);
-      // var_dump('the form in ajax.tick is ');
-      // var_dump($form);
-      // // var_dump($errors);
-      if ($_POST) {
-          // var_dump('post and is valid');
-          if ($ticket->inline_form_edit($fid, $form, $errors)) {
-                $_SESSION['::sysmsgs']['msg'] = sprintf(
-                        __('%s successfully'),
-                        sprintf(
-                            __('%s updated'),
-                            __('Ticket')
-                            )
-                        );
-
-                Http::response(201, $ticket->getId());
-                $info[$fid] = $info[$fid] ?: $fid;
+      $form = $field->getEditForm($_POST);
+      if ($_POST && $form->isValid()) {
+            if ($ticket->updateField($form, $errors)) {
+              $_SESSION['::sysmsgs']['msg'] = sprintf(
+                      __('%s successfully'),
+                      sprintf(
+                          __('%s updated'),
+                          __($field->getLabel())
+                          )
+                      );
+              Http::response(201, $field->getClean());
           }
-
           $form->addErrors($errors);
-          $info['error'] = $errors['err'] ?: __('Unable to update ticket');
+          $info['error'] = $errors['err'] ?: __('Unable to update field');
       }
 
-      include STAFFINC_DIR . 'templates/inline-edit.tmpl.php';
+      include STAFFINC_DIR . 'templates/field-edit.tmpl.php';
   }
 
     function assign($tid, $target=null) {
