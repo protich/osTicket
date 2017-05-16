@@ -22,7 +22,7 @@
     z-index: 3000;
 }
 
-#loading h4 { margin: 3px 0 0 0; padding: 0; color: #d80; }
+#loading h4 { margin: 3px 0 0 0; padding: 0; color: #00AEEF; }
 
 .pull-right {
     float: right;

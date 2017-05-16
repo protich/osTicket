@@ -3,7 +3,7 @@
 if(!defined('OSTCLIENTINC') || !$thisclient || !$ticket || !$ticket->checkUserAccess($thisclient)) die('Access Denied!');
 
 ?>
-
+<div class="contentContainer">
 <h1>
     <?php echo sprintf(__('Editing Ticket #%s'), $ticket->getNumber()); ?>
 </h1>
@@ -28,3 +28,4 @@ if(!defined('OSTCLIENTINC') || !$thisclient || !$ticket || !$ticket->checkUserAc
         window.location.href='index.php';"/>
 </p>
 </form>
+</div>

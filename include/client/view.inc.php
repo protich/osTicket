@@ -26,7 +26,7 @@ if ($thisclient && $thisclient->isGuest()
     </div>
 
 <?php } ?>
-
+<div class="contentContainer">
 <table width="100%" cellpadding="1" cellspacing="0" border="0" id="ticketInfo">
     <tr>
         <td colspan="2" width="100%">
@@ -185,6 +185,7 @@ echo $attrs; ?>><?php echo $draft ?: $info['message'];
         <input type="button" value="<?php echo __('Cancel');?>" onClick="history.go(-1)">
     </p>
 </form>
+</div>
 <?php
 } ?>
 <script type="text/javascript">

@@ -1,3 +1,4 @@
+<div class="contentContainer">
 <h1><?php echo __('Manage Your Profile Information'); ?></h1>
 <p><?php echo __(
 'Use the forms below to update the information we have on file for your account'
@@ -98,3 +99,4 @@ $selected = ($info['lang'] == $l['code']) ? 'selected="selected"' : ''; ?>
         window.location.href='index.php';"/>
 </p>
 </form>
+</div>

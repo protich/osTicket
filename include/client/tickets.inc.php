@@ -166,41 +166,40 @@ foreach (Topic::getHelpTopics(true) as $id=>$name) {
 </div>
 
 
-<h1 style="margin:10px 0">
+<h1 style="margin:10px 0; padding: 0 30px;">
     <a href="<?php echo Format::htmlchars($_SERVER['REQUEST_URI']); ?>"
         ><i class="refresh icon-refresh"></i>
     <?php echo __('Tickets'); ?>
     </a>
-
-<div class="pull-right states">
-    <small>
-<?php if ($openTickets) { ?>
-    <i class="icon-file-alt"></i>
-    <a class="state <?php if ($status == 'open') echo 'active'; ?>"
-        href="?<?php echo Http::build_query(array('a' => 'search', 'status' => 'open')); ?>">
-    <?php echo _P('ticket-status', 'Open'); if ($openTickets > 0) echo sprintf(' (%d)', $openTickets); ?>
-    </a>
-    <?php if ($closedTickets) { ?>
-    &nbsp;
-    <span style="color:lightgray">|</span>
-    <?php }
-}
-if ($closedTickets) {?>
-    &nbsp;
-    <i class="icon-file-text"></i>
-    <a class="state <?php if ($status == 'closed') echo 'active'; ?>"
-        href="?<?php echo Http::build_query(array('a' => 'search', 'status' => 'closed')); ?>">
-    <?php echo __('Closed'); if ($closedTickets > 0) echo sprintf(' (%d)', $closedTickets); ?>
-    </a>
-<?php } ?>
+    <small style="margin-left: 25px;">
+        <?php if ($openTickets) { ?>
+            <div id="ticketOpenTab" class="ticketsViewTab <?php if ($status == 'open') echo 'tabActive'; ?>">
+            <i class="icon-file-alt"></i>
+            <a class="ticketsViewTabLink state <?php if ($status == 'open') echo 'active'; ?>"
+                href="?<?php echo Http::build_query(array('a' => 'search', 'status' => 'open')); ?>">
+            <?php echo _P('ticket-status', 'Open'); if ($openTickets > 0) echo sprintf(' (%d)', $openTickets); ?>
+            </a>
+            </div>
+            <?php if ($closedTickets) { ?>
+            <?php }
+        }
+        if ($closedTickets) {?>
+            <div id="ticketCloseTab" class="ticketsViewTab <?php if ($status == 'closed') echo 'tabActive'; ?>">
+            <i class="icon-file-text"></i>
+            <a class="ticketsViewTabLink state <?php if ($status == 'closed') echo 'active'; ?>"
+                href="?<?php echo Http::build_query(array('a' => 'search', 'status' => 'closed')); ?>">
+            <?php echo __('Closed'); if ($closedTickets > 0) echo sprintf(' (%d)', $closedTickets); ?>
+            </a>
+            </div>
+        <?php } ?>
     </small>
-</div>
 </h1>
+<div class="contentContainer">
 <table id="ticketTable" width="800" border="0" cellspacing="0" cellpadding="0">
     <caption><?php echo $showing; ?></caption>
     <thead>
         <tr>
-            <th nowrap>
+            <th width="180">
                 <a href="tickets.php?sort=ID&order=<?php echo $negorder; ?><?php echo $qstr; ?>" title="Sort By Ticket ID"><?php echo __('Ticket #');?></a>
             </th>
             <th width="120">
@@ -209,7 +208,7 @@ if ($closedTickets) {?>
             <th width="100">
                 <a href="tickets.php?sort=status&order=<?php echo $negorder; ?><?php echo $qstr; ?>" title="Sort By Status"><?php echo __('Status');?></a>
             </th>
-            <th width="320">
+            <th nowrap>
                 <a href="tickets.php?sort=subj&order=<?php echo $negorder; ?><?php echo $qstr; ?>" title="Sort By Subject"><?php echo __('Subject');?></a>
             </th>
             <th width="120">
@@ -265,3 +264,4 @@ if ($total) {
     echo '<div>&nbsp;'.__('Page').':'.$pageNav->getPageLinks().'&nbsp;</div>';
 }
 ?>
+</div>

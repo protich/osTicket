@@ -231,16 +231,16 @@ h2, .subject {
 /* Alerts & Notices */
 #msg_notice {
   margin: 0;
-  padding: 5px 10px 5px 36px;
+  padding: 15px 10px 15px 36px;
   height: 16px;
-  line-height: 16px;
+  line-height: 0px;
   margin-bottom: 10px;
   border: 1px solid #0a0;
   background: url('../images/icons/ok.png') 10px 50% no-repeat #e0ffe0;
 }
 #msg_warning, .warning-banner {
   margin: 0;
-  padding: 5px 10px 5px 36px;
+  padding: 10px 10px 10px 36px;
   height: 16px;
   line-height: 16px;
   margin-bottom: 10px;
@@ -249,7 +249,7 @@ h2, .subject {
 }
 #msg_error {
   margin: 0;
-  padding: 5px 10px 5px 36px;
+  padding: 10px 10px 10px 36px;
   height: auto;
   line-height: 16px;
   margin-bottom: 10px;
@@ -337,6 +337,7 @@ body {
     background-color: #0f204b;
     border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
+    color: white;
 }
 
 .navSignIn a {
@@ -614,6 +615,7 @@ body {
   color: #333;
 }
 #footer p {
+  height: 30px;
   margin: 10px 0 0 0;
 }
 #footer #poweredBy {
@@ -900,6 +902,9 @@ label.required, span.required {
 #clientLogin div.error label {
   color: #a00;
 }
+#ticketTable {
+    width: 100%;
+}
 #ticketTable th {
   padding-left: 3px;
   font-weight: normal;
@@ -1045,16 +1050,15 @@ label.required, span.required {
   background-image: url('../images/icons/thread.gif?1319556657');
 }
 #ticketTable {
-  border: 1px solid #aaa;
+  border: 1px solid lightgray;
   border-left: none;
   border-bottom: none;
 }
 #ticketTable caption {
   padding: 5px;
   text-align: left;
-  color: #000;
-  background: #ddd;
-  border: 1px solid #aaa;
+  color: white;
+  background: #0f204b;
   border-bottom: none;
   font-weight: bold;
 }
@@ -1062,7 +1066,7 @@ label.required, span.required {
   height: 24px;
   line-height: 24px;
   background: #e1f2ff;
-  border: 1px solid #aaa;
+  border: 1px solid lightgray;
   border-right: none;
   border-top: none;
   padding: 0 5px;
@@ -1072,7 +1076,7 @@ label.required, span.required {
 }
 #ticketTable td {
   padding: 3px 5px;
-  border: 1px solid #aaa;
+  border: 1px solid lightgray;
   border-right: none;
   border-top: none;
 }
@@ -1091,7 +1095,7 @@ i.refresh {
     font-weight: bold;
 }
 .search.well {
-    padding: 10px;
+    padding: 15px 10px 10px 10px;
     background-color: rgba(0,0,0,0.05);
     margin-bottom: 10px;
     margin-top: -15px;
@@ -1112,21 +1116,15 @@ i.refresh {
   background-clip: padding-box;
   color: #777 !important;
   display: inline-block;
-  border: 1px solid #aaa;
   cursor: pointer;
   font-size: 11px;
   overflow: hidden;
   background-color: #dddddd;
-  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #efefef), color-stop(100% #dddddd));
-  background-image: -webkit-linear-gradient(top, #efefef 0%, #dddddd 100%);
-  background-image: -moz-linear-gradient(top, #efefef 0%, #dddddd 100%);
-  background-image: -ms-linear-gradient(top, #efefef 0%, #dddddd 100%);
-  background-image: -o-linear-gradient(top, #efefef 0%, #dddddd 100%);
-  background-image: linear-gradient(top, #efefef 0%, #dddddd 100%);
-  padding: 0 5px;
+  padding: 5px 10px;
   text-decoration: none;
   line-height:18px;
   margin-left:5px;
+  border: none;
 }
 .action-button span,
 .action-button a {
@@ -1191,6 +1189,7 @@ img.sign-in-image {
     text-align: left;
 }
 .sidebar {
+    margin-top: 30px;
     margin-bottom: 20px;
     margin-left: 20px;
     width: 215px;
@@ -1281,6 +1280,28 @@ table.custom-data .headline {
     font-weight: bold;
     background-color: white;
 }
+.ticketsViewTab {
+    display: inline-block;
+    background-color: lightgray;
+    color: black;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.ticketsViewTab a {
+    color: black;
+}
+
+.tabActive {
+    background: #0072bc;
+    color: white;
+}
+
+.tabActive a {
+    color: white;
+}
+
 #ticketInfo h1 {
     padding-bottom: 10px;
     margin-bottom: 5px;

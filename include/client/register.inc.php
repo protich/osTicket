@@ -14,6 +14,7 @@ if (isset($user) && $user instanceof ClientCreateRequest) {
 $info = Format::htmlchars(($errors && $_POST)?$_POST:$info);
 
 ?>
+<div class="contentContainer">
 <h1><?php echo __('Account Registration'); ?></h1>
 <p><?php echo __(
 'Use the forms below to create or update the information we have on file for your account'
@@ -96,7 +97,7 @@ $info = Format::htmlchars(($errors && $_POST)?$_POST:$info);
     <input type="button" value="Cancel" onclick="javascript:
         window.location.href='index.php';"/>
 </p>
-</form>
+</form></div>
 <?php if (!isset($info['timezone'])) { ?>
 <!-- Auto detect client's timezone where possible -->
 <script type="text/javascript" src="<?php echo ROOT_PATH; ?>js/jstz.min.js"></script>
