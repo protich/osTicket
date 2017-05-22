@@ -77,7 +77,6 @@ if ($count) { ?>
     <?php
     foreach($tasks as $task) {
         $id = $task->getId();
-        $access = $task->checkStaffPerm($thisstaff);
         $assigned='';
         if ($task->staff)
             $assigned=sprintf('<span class="Icon staffAssigned">%s</span>',
@@ -89,10 +88,7 @@ if ($count) { ?>
         $threadcount = $task->getThread() ?
             $task->getThread()->getNumEntries() : 0;
 
-        if ($access)
-            $viewhref = sprintf('#tickets/%d/tasks/%d/view', $ticket->getId(), $id);
-        else
-            $viewhref = '#';
+        $viewhref = sprintf('#tickets/%d/tasks/%d/view', $ticket->getId(), $id);
 
         ?>
         <tr id="<?php echo $id; ?>">

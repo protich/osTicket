@@ -130,15 +130,29 @@ if ($filters)
 $visibility = array(
     new Q(array('flags__hasbit' => TaskModel::ISOPEN, 'staff_id' => $thisstaff->getId()))
 );
+
+$visibility[] = new Q(array(
+            'ticket__staff_id' => $thisstaff->getId(),
+            'ticket__status__state' => 'open'));
+
 // -- Routed to a department of mine
-if (!$thisstaff->showAssignedOnly() && ($depts=$thisstaff->getDepts()))
+if (!$thisstaff->showAssignedOnly() && ($depts=$thisstaff->getDepts())) {
     $visibility[] = new Q(array('dept_id__in' => $depts));
+    // Tasks attached to a ticket I have access to
+    $visibility[] = new Q(array('ticket__dept_id__in' => $depts));
+}
+
 // -- Open and assigned to a team of mine
-if (($teams = $thisstaff->getTeams()) && count(array_filter($teams)))
+if (($teams = array_filter($thisstaff->getTeams())) && count($teams)) {
     $visibility[] = new Q(array(
         'team_id__in' => array_filter($teams),
         'flags__hasbit' => TaskModel::ISOPEN
     ));
+    $visibility[] = new Q(array(
+                'ticket__team_id__in' => $depts,
+                'ticket__status__state' => 'open'));
+}
+
 $tasks->filter(Q::any($visibility));
 
 // Add in annotations

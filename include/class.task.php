@@ -56,12 +56,11 @@ class TaskModel extends VerySimpleModel {
                 ),
                 'list' => true,
             ),
-
             'ticket' => array(
                 'constraint' => array(
-                    'object_type' => "'T'",
                     'object_id' => 'Ticket.ticket_id',
                 ),
+                'list' => false,
                 'null' => true,
             ),
         ),
@@ -269,9 +268,13 @@ class Task extends TaskModel implements RestrictedAccess, Threadable {
 
         // Check access based on department or assignment
         if (!$staff->canAccessDept($this->getDeptId())
-                && $this->isOpen()
-                && $staff->getId() != $this->getStaffId()
-                && !$staff->isTeamMember($this->getTeamId()))
+                && ($this->isOpen()
+                    && $staff->getId() != $this->getStaffId())
+                && ($this->isOpen() &&
+                    !$staff->isTeamMember($this->getTeamId()))
+                // Access to parent ticket
+                && ($this->ticket && !$this->ticket->checkStaffPerm($staff))
+                )
             return false;
 
         // At this point staff has access unless a specific permission is
@@ -1378,9 +1381,17 @@ class Task extends TaskModel implements RestrictedAccess, Threadable {
                 || !$staff->isStaff())
             return null;
 
+
+        $from = ' FROM ' . TASK_TABLE . ' task '
+               .' LEFT JOIN '.TICKET_TABLE.' ticket ON
+               (task.object_id=ticket.ticket_id) ';
+
         $where = array('(task.staff_id='.db_input($staff->getId())
                     .sprintf(' AND task.flags & %d != 0 ', TaskModel::ISOPEN)
                     .') ');
+
+        $where[] = 'ticket.staff_id='.db_input($staff->getId());
+
         $where2 = '';
 
         if(($teams=$staff->getTeams()))
@@ -1389,31 +1400,33 @@ class Task extends TaskModel implements RestrictedAccess, Threadable {
                         .sprintf('task.flags & %d != 0 ', TaskModel::ISOPEN)
                         .')';
 
-        if(!$staff->showAssignedOnly() && ($depts=$staff->getDepts())) //Staff with limited access just see Assigned tasks.
+        if(!$staff->showAssignedOnly() && ($depts=$staff->getDepts())) { //Staff with limited access just see Assigned tasks.
             $where[] = 'task.dept_id IN('.implode(',', db_input($depts)).') ';
+            $where[] = 'ticket.dept_id IN('.implode(',', db_input($depts)).') ';
+         }
 
         $where = implode(' OR ', $where);
         if ($where) $where = 'AND ( '.$where.' ) ';
 
         $sql =  'SELECT \'open\', count(task.id ) AS tasks '
-                .'FROM ' . TASK_TABLE . ' task '
+                . $from
                 . sprintf(' WHERE task.flags & %d != 0 ', TaskModel::ISOPEN)
                 . $where . $where2
 
                 .'UNION SELECT \'overdue\', count( task.id ) AS tasks '
-                .'FROM ' . TASK_TABLE . ' task '
+                . $from
                 . sprintf(' WHERE task.flags & %d != 0 ', TaskModel::ISOPEN)
                 . sprintf(' AND task.flags & %d != 0 ', TaskModel::ISOVERDUE)
                 . $where
 
                 .'UNION SELECT \'assigned\', count( task.id ) AS tasks '
-                .'FROM ' . TASK_TABLE . ' task '
+                . $from
                 . sprintf(' WHERE task.flags & %d != 0 ', TaskModel::ISOPEN)
                 .'AND task.staff_id = ' . db_input($staff->getId()) . ' '
                 . $where
 
                 .'UNION SELECT \'closed\', count( task.id ) AS tasks '
-                .'FROM ' . TASK_TABLE . ' task '
+                . $from
                 . sprintf(' WHERE task.flags & %d = 0 ', TaskModel::ISOPEN)
                 . $where;
 
