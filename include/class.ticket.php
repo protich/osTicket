@@ -498,18 +498,24 @@ implements RestrictedAccess, Threadable {
         }
     }
 
-    function updateEstDueDate() {
-        $this->est_duedate = $this->getEstDueDate();
-        $this->save();
+    function updateEstDueDate($clearOverdue=true) {
+        $DueDate = $this->getEstDueDate();
+        $this->est_duedate = $DueDate;
+        // Clear overdue flag if duedate or SLA changes and the ticket is no longer overdue.
+        if ($this->isOverdue()
+            && $clearOverdue
+            && (!$DueDate // Duedate + SLA cleared
+                || Misc::db2gmtime($DueDate) > Misc::gmtime() //New due date in the future.
+        )) {
+             $this->isoverdue = 0;
+        }
+
+        return $this->save();
     }
 
     function getEstDueDate() {
-        // Real due date
-        if ($duedate = $this->getDueDate()) {
-            return $duedate;
-        }
-        // return sla due date (If ANY)
-        return $this->getSLADueDate();
+        // Real due date or  sla due date (If ANY)
+        return $this->getDueDate() ?: $this->getSLADueDate();
     }
 
     function getCloseDate() {
@@ -3222,16 +3228,7 @@ implements RestrictedAccess, Threadable {
         }
 
         // Update estimated due date in database
-        $estimatedDueDate = $this->getEstDueDate();
         $this->updateEstDueDate();
-
-        // Clear overdue flag if duedate or SLA changes and the ticket is no longer overdue.
-        if($this->isOverdue()
-            && (!$estimatedDueDate //Duedate + SLA cleared
-                || Misc::db2gmtime($estimatedDueDate) > Misc::gmtime() //New due date in the future.
-        )) {
-            $this->clearOverdue();
-        }
 
         Signal::send('model.updated', $this);
         return $this->save();
@@ -3255,11 +3252,14 @@ implements RestrictedAccess, Threadable {
             } else {
                 $val =  $field->getClean();
                 $fid = $field->get('name');
-                var_dump($val, $fid);
                 $this->{$fid} = $val;
+                $updateDuedate = false;
                 $changes = array();
                 foreach ($this->dirty as $F=>$old) {
                     switch ($F) {
+                    case 'sla_id':
+                    case 'duedate':
+                        $updateDuedate = true;
                     case 'topic_id':
                     case 'user_id':
                     case 'source':
@@ -3269,8 +3269,11 @@ implements RestrictedAccess, Threadable {
                     }
                 }
 
+                Signal::send('model.updated', $this);
                 if (!$this->save())
                     $errors['field'] =  __('Unable to update field');
+                elseif ($updateDuedate) //TODO: use signal to update est. duedate
+                    $this->updateEstDueDate();
             }
         }
 
@@ -3279,8 +3282,8 @@ implements RestrictedAccess, Threadable {
 
         // Record the changes
         $this->logEvent('edited', $changes);
-        // Log comments (if any)
 
+        // Log comments (if any)
         if (($comments = $form->getField('comments')->getClean())) {
             $title = sprintf(__('%s updated'), __($field->getLabel()));
             $_errors = array();
