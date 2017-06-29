@@ -331,8 +331,25 @@ implements RestrictedAccess, Threadable {
          return $this->hasState('deleted');
     }
 
-    function isAssigned() {
-        return $this->isOpen() && ($this->getStaffId() || $this->getTeamId());
+    function isAssigned($to=null) {
+
+        if ($this->isOpen())
+            return false;
+
+        if (!$to)
+            return ($this->getStaffId() || $this->getTeamId());
+
+        switch (true) {
+        case $to instanceof Staff:
+            return ($to->getId() == $this->getStaffId() ||
+                    $to->isTeamMember($this->getTeamId()));
+            break;
+        case $to instanceof Team:
+            return ($to->getId() == $this->getTeamId());
+            break;
+        }
+
+        return false;
     }
 
     function isOverdue() {
@@ -359,6 +376,8 @@ implements RestrictedAccess, Threadable {
             && $this->isOpen()
             && $staff->getId() != $this->getStaffId()
             && !$staff->isTeamMember($this->getTeamId())
+            && !$this->thread->getReferral($staff->getId(),
+                ObjectModel::OBJECT_TYPE_STAFF)
         ) {
             return false;
         }
@@ -912,9 +931,20 @@ implements RestrictedAccess, Threadable {
             $source = array('assignee' => array($assignee));
 
         $form = AssignmentForm::instantiate($source, $options);
-
         if ($assignees)
             $form->setAssignees($assignees);
+
+        if (($refer = $form->getField('refer'))) {
+            if ($assignee) {
+                $visibility = new VisibilityConstraint(
+                        new Q(array()), VisibilityConstraint::HIDDEN);
+                $refer->set('visibility', $visibility);
+            } else {
+                $refer->configure('desc', sprintf(__('Maintain referral access to %s'),
+                        $this->getAssigned()));
+            }
+        }
+
 
         if ($prompt && ($f=$form->getField('assignee')))
             $f->configure('prompt', $prompt);
@@ -970,7 +1000,8 @@ implements RestrictedAccess, Threadable {
     function getTransferForm($source=null) {
 
         if (!$source)
-            $source = array('dept' => array($this->getDeptId()));
+            $source = array('dept' => array($this->getDeptId()),
+                    'refer' => true);
 
         return TransferForm::instantiate($source);
     }
@@ -2233,6 +2264,9 @@ implements RestrictedAccess, Threadable {
                     $_errors, $thisstaff, false);
         }
 
+        if ($form->refer() && $cdept)
+            $this->thread->refer($cdept);
+
         //Send out alerts if enabled AND requested
         if (!$alert || !$cfg->alertONTransfer())
             return true; //no alerts!!
@@ -2572,6 +2606,7 @@ implements RestrictedAccess, Threadable {
         global $thisstaff;
 
         $evd = array();
+        $refer = null;
         $assignee = $form->getAssignee();
         if ($assignee instanceof Staff) {
             $dept = $this->getDept();
@@ -2586,6 +2621,7 @@ implements RestrictedAccess, Threadable {
                 $errors['err'] = __('Permission denied');
             } else {
                 $this->staff_id = $assignee->getId();
+                $refer = $this->staff ?: null;
                 if ($thisstaff && $thisstaff->getId() == $assignee->getId()) {
                     $alert = false;
                     $evd['claim'] = true;
@@ -2600,6 +2636,7 @@ implements RestrictedAccess, Threadable {
                         __('the team')
                         );
             } else {
+                $refer = $this->team ?: null;
                 $this->team_id = $assignee->getId();
                 $evd = array('team' => $assignee->getId());
             }
@@ -2613,6 +2650,9 @@ implements RestrictedAccess, Threadable {
         $this->logEvent('assigned', $evd);
 
         $this->onAssign($assignee, $form->getComments(), $alert);
+
+        if ($refer && $form->refer())
+            $this->thread->refer($refer);
 
         return true;
     }

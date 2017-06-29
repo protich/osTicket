@@ -26,11 +26,11 @@ $action = $info[':action'] ?: ('#');
 $manage = (!$target);
 ?>
 <ul class="tabs" id="referral">
-    <li <?php echo !$manage ? 'class="active"' : ''; ?>><a href="#refer"
-        ><i class="icon-exchange"></i>&nbsp;<?php echo __('Refer'); ?></a></li>
     <li <?php echo $manage ? 'class="active"' : ''; ?>><a href="#referrals"
         ><i class="icon-list"></i>&nbsp;<?php
         echo sprintf('%s (%d)', __('Referrals'), $thread->getNumReferrals()); ?></a></li>
+    <li <?php echo !$manage ? 'class="active"' : ''; ?>><a href="#refer"
+        ><i class="icon-exchange"></i>&nbsp;<?php echo __('Refer'); ?></a></li>
 </ul>
 <div id="referral_container">
    <div class="tab_content <?php echo $manage ? 'hidden' : ''; ?>" id="refer" style="margin:5px;">

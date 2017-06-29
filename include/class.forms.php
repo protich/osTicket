@@ -3832,7 +3832,7 @@ class CheckboxWidget extends Widget {
         $data = $this->field->getSource();
         if (count($data)) {
             if (!isset($data[$this->name]))
-                return false;
+                return null;
             return @in_array($this->field->get('id'), $data[$this->name]);
         }
         return parent::getValue();
@@ -4401,10 +4401,8 @@ class AssignmentForm extends Form {
 
         $fields = array(
             'assignee' => new AssigneeField(array(
-                    'id'=>1,
-                    'label' => __('Assignee'),
-                    'flags' => hexdec(0X450F3),
-                    'required' => true,
+                    'id'=>1, 'label' => __('Assignee'),
+                    'flags' => hexdec(0X450F3), 'required' => true,
                     'validator-error' => __('Assignee selection required'),
                     'configuration' => array(
                         'criteria' => array(
@@ -4413,11 +4411,14 @@ class AssignmentForm extends Form {
                        ),
                     )
                 ),
+            'refer' => new BooleanField(array(
+                    'id'=>2, 'label'=>'', 'required'=>false, 'default'=>true,
+                    'configuration'=>array(
+                        'desc' => 'Maintain referral access to current assignees')
+                    )
+                ),
             'comments' => new TextareaField(array(
-                    'id' => 2,
-                    'label'=> '',
-                    'required'=>false,
-                    'default'=>'',
+                    'id' => 3, 'label'=> '', 'required'=>false, 'default'=>'',
                     'configuration' => array(
                         'html' => true,
                         'size' => 'small',
@@ -4501,6 +4502,10 @@ class AssignmentForm extends Form {
 
     function getComments() {
         return $this->getField('comments')->getClean();
+    }
+
+    function refer() {
+        return $this->getField('refer')->getClean();
     }
 }
 
@@ -4687,8 +4692,13 @@ class TransferForm extends Form {
                     'validator-error' => __('Department selection is required'),
                     )
                 ),
+            'refer' => new BooleanField(array(
+                'id'=>2, 'label'=>'', 'required'=>false, 'default'=>true,
+                'configuration'=>array(
+                    'desc' => 'Maintain referral access to current department')
+            )),
             'comments' => new TextareaField(array(
-                    'id' => 2,
+                    'id' => 3,
                     'label'=> '',
                     'required'=>false,
                     'default'=>'',
@@ -4733,6 +4743,10 @@ class TransferForm extends Form {
         $form = $this;
         include $inc;
 
+    }
+
+    function refer() {
+        return $this->getField('refer')->getClean();
     }
 
     function getDept() {

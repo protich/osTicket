@@ -241,6 +241,13 @@ class Thread extends VerySimpleModel {
         return $this->_participants;
     }
 
+    function getReferral($id, $type) {
+
+        return $this->referrals->findFirst(array(
+                    'object_id' => $id,
+                    'object_type' => $type));
+    }
+
     function refer($to) {
 
         $vars = array('thread_id' => $this->getId());
@@ -260,8 +267,6 @@ class Thread extends VerySimpleModel {
         default:
             return false;
         }
-
-        var_dump($vars);
 
         return ThreadReferral::create($vars);
     }
