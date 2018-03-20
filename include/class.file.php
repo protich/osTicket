@@ -13,7 +13,22 @@
 **********************************************************************/
 require_once(INCLUDE_DIR.'class.signal.php');
 require_once(INCLUDE_DIR.'class.error.php');
+require_once(INCLUDE_DIR.'class.charset.php');
 
+/**
+ * Represents a file stored in a storage backend. It is generally attached
+ * to something; however company logos, login page backdrops, and other
+ * items are also stored in the database for various purposes.
+ *
+ * FileType-Definitions:
+ *    The `ft` field is used to represent the type or purpose of the file
+ *    with respect to the system. These are the defined file types (placed
+ *    here as the definitions are not needed in code).
+ *
+ *    - 'T' => Attachments
+ *    - 'L' => Logo
+ *    - 'B' => Backdrop
+ */
 class AttachmentFile extends VerySimpleModel {
 
     static $meta = array(
@@ -94,6 +109,18 @@ class AttachmentFile extends VerySimpleModel {
         return FileStorageBackend::getInstance($this);
     }
 
+    function getOutputFilter() {
+
+        $filter = false;
+        switch ($this->getType()) {
+        case 'message/rfc822':
+            $filter = 'transcode.utf8-ascii';
+            break;
+        }
+
+        return $filter;
+    }
+
     function sendData($redirect=true, $disposition='inline') {
         $bk = $this->open();
         if ($redirect && $bk->sendRedirectUrl($disposition))
@@ -101,7 +128,7 @@ class AttachmentFile extends VerySimpleModel {
 
         @ini_set('zlib.output_compression', 'Off');
         try {
-            $bk->passthru();
+            $bk->passthru($this->getOutputFilter());
         }
         catch (IOException $ex) {
             Http::response(404, 'File not found');
@@ -741,9 +768,13 @@ class FileStorageBackend {
     /**
      * Convenience method to send all the file to standard output
      */
-    function passthru() {
+    function passthru($filter=false) {
+
+        $fp = fopen('php://output', 'w');
+        if ($filter)
+            @stream_filter_append($fp, $filter);
         while ($block = $this->read())
-            echo $block;
+            fwrite($fp, $block);
     }
 
     /**
