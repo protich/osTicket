@@ -292,11 +292,11 @@ implements RestrictedAccess, Threadable, Searchable {
         // check department access first
         if (!$staff->canAccessDept($this->getDept())
                 // no restrictions
-                && !$staff->isAccessLimited()
+                || (!$staff->isAccessLimited()
                 // check assignment
                 && !$this->isAssigned($staff)
                 // check referral
-                && !$this->thread->isReferred($staff))
+                && !$this->thread->isReferred($staff)))
             return false;
 
         // At this point staff has view access unless a specific permission is
