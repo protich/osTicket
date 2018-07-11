@@ -2939,7 +2939,7 @@ implements RestrictedAccess, Threadable, Searchable {
             $attachments = $cfg->emailAttachments() ? $response->getAttachments() : array();
             //Cc collaborators
             $collabsCc = array();
-            if ($vars['ccs']) {
+            if ($vars['ccs'] && Ticket::checkReply('cc', $vars['emailreply'])) {
                 $collabsCc[] = Collaborator::getCollabList($vars['ccs']);
                 $collabsCc['cc'] = $collabsCc[0];
             }
