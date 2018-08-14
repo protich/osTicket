@@ -2957,6 +2957,7 @@ class MySqlCompiler extends SqlCompiler {
         $meta = $model::getMeta();
         $table = $this->quote($meta['table']).' '.$rootAlias;
         // Handle related tables
+        $need_group_by = false;
         if ($queryset->related) {
             $count = 0;
             $fieldMap = $theseFields = array();
@@ -3009,6 +3010,7 @@ class MySqlCompiler extends SqlCompiler {
                     $fields[$f->toSql($this, $model, $alias)] = true;
                     if ($f instanceof SqlAggregate) {
                         // Don't group_by aggregate expressions
+                        $need_group_by = true;
                         continue;
                     }
                 }
@@ -3042,6 +3044,8 @@ class MySqlCompiler extends SqlCompiler {
             foreach ($queryset->annotations as $alias=>$A) {
                 // The root model will receive the annotations, add in the
                 // annotation after the root model's fields
+                if ($A instanceof SqlAggregate)
+                    $need_group_by = true;
                 $T = $A->toSql($this, $model, $alias);
                 if ($fieldMap) {
                     array_splice($fields, count($fieldMap[0][0]), 0, array($T));
@@ -3058,6 +3062,8 @@ class MySqlCompiler extends SqlCompiler {
                     $group_by[] = $rootAlias .'.'. $pk;
             }
         }
+        if (!$need_group_by)
+            $group_by = [];
         // Add in SELECT extras
         if (isset($queryset->extra['select'])) {
             foreach ($queryset->extra['select'] as $name=>$expr) {
