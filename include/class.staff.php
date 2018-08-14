@@ -580,12 +580,18 @@ implements AuthenticatedUser, EmailContact, TemplateVariable, Searchable {
             'staff_id' => $this->getId(),
         ));
 
-        $assigned->add(array('thread__referrals__agent__staff_id' => $this->getId()));
+        $assigned->add(Q::all([
+            'thread__referrals__object_type' => 'S',
+            'thread__referrals__object_id' => $this->getId(),
+        ]));
 
         // -- Open and assigned to a team of mine
         if (($teams = array_filter($this->getTeams()))) {
             $assigned->add(array('team_id__in' => $teams));
-            $assigned->add(array('thread__referrals__team__team_id__in' => $teams));
+            $assigned->add(Q::all([
+                'thread__referrals__object_type' => 'E',
+                'thread__referrals__object_id__in' => $teams
+            ]));
         }
 
         $visibility = Q::any(new Q(array('status__state'=>'open', $assigned)));
@@ -593,7 +599,10 @@ implements AuthenticatedUser, EmailContact, TemplateVariable, Searchable {
         // -- Routed to a department of mine
         if (!$this->showAssignedOnly() && ($depts=$this->getDepts())) {
             $visibility->add(array('dept_id__in' => $depts));
-            $visibility->add(array('thread__referrals__dept__id__in' => $depts));
+            $visibility->add(Q::all([
+                'thread__referrals__object_type' => 'D',
+                'thread__referrals__object_id__in' => $depts
+            ]));
         }
 
         return $visibility;
