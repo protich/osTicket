@@ -870,7 +870,7 @@ class SavedQueue extends CustomQueue {
             $Q = $queue->getBasicQuery();
             $expr = SqlCase::N()->when(new SqlExpr(new Q($Q->constraints)), new SqlField('ticket_id'));
             $query->aggregate(array(
-                "$prefix{$queue->id}" => SqlAggregate::COUNT($expr, true)
+                "$prefix{$queue->id}" => SqlAggregate::COUNT($expr)
             ));
         }
 
