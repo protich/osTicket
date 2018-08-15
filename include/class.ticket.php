@@ -45,7 +45,8 @@ implements RestrictedAccess, Threadable, Searchable {
             'sla', 'thread', 'user__default_email', 'status'),
         'joins' => array(
             'user' => array(
-                'constraint' => array('user_id' => 'User.id')
+                'constraint' => array('user_id' => 'User.id'),
+                'null' => true,
             ),
             'status' => array(
                 'constraint' => array('status_id' => 'TicketStatus.id')
