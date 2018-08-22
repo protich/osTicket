@@ -849,7 +849,9 @@ class SavedQueue extends CustomQueue {
 
     function getCount($agent, $cached=true) {
         $criteria = $cached ? array() : array('id' => $this->getId());
-        $counts = self::counts($agent, $criteria, $cached);
+        if (!($counts = self::counts($agent, $criteria, $cached)))
+            return 0;
+
         return $counts["q{$this->getId()}"] ?: 0;
     }
 
@@ -904,7 +906,11 @@ class SavedQueue extends CustomQueue {
             ));
         }
 
-        $counts = $query->values()->one();
+        try {
+            $counts = $query->values()->one();
+        }  catch (Exception $ex) {
+            return null;
+        }
         // Always cache the results
         if (function_exists('apcu_store')) {
             apcu_store($key, $counts, $ttl);
