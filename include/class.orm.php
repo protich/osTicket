@@ -1491,6 +1491,10 @@ class QuerySet implements IteratorAggregate, ArrayAccess, Serializable, Countabl
         $this->options[$option] = $value;
     }
 
+    function clearOption($option) {
+        unset($this->options[$option]);
+    }
+
     function countSelectFields() {
         $count = count($this->values) + count($this->annotations);
         if (isset($this->extra['select']))
@@ -3017,13 +3021,15 @@ class MySqlCompiler extends SqlCompiler {
         }
         // Support retrieving only a list of values rather than a model
         elseif ($queryset->values) {
+            $additional_group_by = array();
             foreach ($queryset->values as $alias=>$v) {
                 list($f) = $this->getField($v, $model);
                 $unaliased = $f;
                 if ($f instanceof SqlFunction) {
                     $fields[$f->toSql($this, $model, $alias)] = true;
                     if ($f instanceof SqlAggregate) {
-                        // Don't group_by aggregate expressions
+                        // Don't group_by aggregate expressions, but if there is an
+                        // aggergate expression, then we need a GROUP BY clause.
                         $need_group_by = true;
                         continue;
                     }
@@ -3036,8 +3042,10 @@ class MySqlCompiler extends SqlCompiler {
                 // If there are annotations, add in these fields to the
                 // GROUP BY clause
                 if ($queryset->annotations && !$queryset->distinct)
-                    $group_by[] = $unaliased;
+                    $additional_group_by[] = $unaliased;
             }
+            if ($need_group_by && $additional_group_by)
+                $group_by = array_merge($group_by, $additional_group_by);
         }
         // Simple selection from one table
         elseif (!$queryset->aggregated) {
