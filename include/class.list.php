@@ -504,6 +504,13 @@ class DynamicList extends VerySimpleModel implements CustomList {
         return $inst;
     }
 
+
+    static function __create($ht, &$error=false) {
+        $list = self::create($ht, $errors);
+        $list->save(true);
+        return $list;
+    }
+
     static function lookup($id) {
 
         if (!($list = parent::lookup($id)))
