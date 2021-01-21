@@ -3368,44 +3368,58 @@ class AssigneeField extends ChoiceField {
         return $value;
     }
 
-    function getChoices($verbose=false, $options=array()) {
-        global $cfg, $thisstaff;
+    function getAssignees($options=array()) {
+        global $thisstaff;
 
-        if (!isset($this->_choices)) {
-            $config = $this->getConfiguration();
-            $choices = array(
+        $config = $this->getConfiguration();
+        $criteria = $this->getCriteria();
+        $dept = $config['dept'] ?: null;
+        $staff = $config['staff'] ?: $thisstaff;
+        $assignees = array();
+        switch (strtolower($config['target'])) {
+        case 'agents':
+            if ($dept)
+                foreach ($dept->getAssignees(array('staff' => $staff)) as $a)
+                    $assignees['s'.$a->getId()] = $a;
+            else
+                foreach (Staff::getStaffMembers($criteria) as $id => $name)
+                    $assignees['s'.$id] = $name;
+            break;
+        case 'teams':
+            foreach (Team::getActiveTeams() ?: array() as $id => $name)
+                $assignees['t'.$id] = $name;
+            break;
+        default:
+            // both agents and teams
+            $assignees = array(
                     __('Agents') => new ArrayObject(),
                     __('Teams') => new ArrayObject());
-            $A = current($choices);
+            $A = current($assignees);
             $criteria = $this->getCriteria();
             $agents = array();
-            if ($options['filterVisibility'])
-                $agents = $thisstaff->getDeptAgents($criteria);
-            else {
-                if (($dept=$config['dept']) && $dept->assignMembersOnly()) {
-                    if (($members = $dept->getAvailableMembers()))
-                        foreach ($members as $member)
-                            $agents[$member->getId()] = $member;
-                } else
-                    $agents = Staff::getStaffMembers($criteria);
-            }
-
-
-            foreach ($agents as $id => $name)
-                $A['s'.$id] = $name;
-
-            next($choices);
-            $T = current($choices);
+            if ($dept)
+                foreach ($dept->getAssignees(array('staff' => $staff)) as $a)
+                    $A['s'.$a->getId()] = $a;
+            else
+                foreach (Staff::getStaffMembers($criteria) as $id => $name)
+                    $A['s'.$id] = $name;
+            next($assignees);
+            $T = current($assignees);
             if (($teams = Team::getActiveTeams()))
                 foreach ($teams as $id => $name)
                     $T['t'.$id] = $name;
-
-            $this->_choices = $choices;
+            break;
         }
+
+        return $assignees;
+    }
+
+    function getChoices($verbose=false, $options=array()) {
+        if (!isset($this->_choices))
+            $this->_choices = $this->getAssignees($options);
 
         return $this->_choices;
     }
-
 
     function getChoice($value) {
         $choices = $this->getChoices();

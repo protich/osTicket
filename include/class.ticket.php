@@ -1000,20 +1000,11 @@ implements RestrictedAccess, Threadable, Searchable {
         $dept = $this->getDept();
         switch (strtolower($options['target'])) {
             case 'agents':
-                $assignees = array();
-                foreach ($thisstaff->getDeptAgents(array('available' => true)) as $member)
-                    $assignees['s'.$member->getId()] = $member;
-
                 if (!$source && $this->isOpen() && $this->staff)
                     $assignee = sprintf('s%d', $this->staff->getId());
                 $prompt = __('Select an Agent');
                 break;
             case 'teams':
-                $assignees = array();
-                if (($teams = Team::getActiveTeams()))
-                    foreach ($teams as $id => $name)
-                        $assignees['t'.$id] = $name;
-
                 if (!$source && $this->isOpen() && $this->team)
                     $assignee = sprintf('t%d', $this->team->getId());
                 $prompt = __('Select a Team');
@@ -1026,11 +1017,8 @@ implements RestrictedAccess, Threadable, Searchable {
 
         $form = AssignmentForm::instantiate($source, $options);
 
-        if (isset($assignees))
-            $form->setAssignees($assignees);
-
         if (($refer = $form->getField('refer'))) {
-            if ($assignee) {
+            if (!$assignee) {
                 $visibility = new VisibilityConstraint(
                         new Q(array()), VisibilityConstraint::HIDDEN);
                 $refer->set('visibility', $visibility);
@@ -1042,9 +1030,12 @@ implements RestrictedAccess, Threadable, Searchable {
 
         // Field configurations
         if ($f=$form->getField('assignee')) {
+            $f->configure('dept', $dept);
+            $f->configure('staff', $thisstaff);
             if ($prompt)
                 $f->configure('prompt', $prompt);
-            $f->configure('dept', $dept);
+            if ($options['target'])
+                $f->configure('target', $options['target']);
         }
 
         return $form;
