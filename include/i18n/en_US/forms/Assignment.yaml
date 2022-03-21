@@ -1,0 +1,32 @@
+- name: assignment # notrans
+  title: Assignment Form
+  instruction: Some info here
+  action: url
+  tabs:
+     main: Main
+     other: Notes
+  fields:
+    - type: assignee # notrans
+      name: assignee # notrans
+      required: true
+      tab: main
+      label: Assignee
+      validator-error: Assignee selection required
+      configuration:
+        criteria:
+          available: true
+    - type: bool # notrans
+      name: refer # notrans
+      required: false
+      default: false
+      label:
+      configuration:
+        desc: Maintain referral access to current assignees
+    - type: memo # notrans
+      name: comments # notrans
+      required: false
+      label: Internal Note
+      configuration:
+        size: small # notrans
+        html: true
+        placeholder: 'Optional reason for the assignment

@@ -344,6 +344,19 @@ class Form {
         $r = new ReflectionClass(get_called_class());
         return $r->newInstanceArgs(func_get_args());
     }
+
+    static function loadFields($name, $form=null) {
+        $i18n = new Internationalization();
+	if (!($info = $i18n->getTemplate("forms/$name")))
+            return null;
+
+	$entries = $info->getData()[0]['fields'];
+	$fields = array();
+	foreach ($info->getData()[0]['fields'] as $vars)
+	   $fields[$vars['name']] = FormField::instanciate($vars, null, $form);
+
+	return $fields;
+    }
 }
 
 /**
@@ -1115,14 +1128,21 @@ class FormField {
      * instance will be returned.
      */
     function getImpl($parent=null) {
+	return self::instanciate($this->ht, $parent, $this->_form);
+    }
+
+    static function instanciate($ht, $parent=null, $form=null) {
         // Allow registration with ::addFieldTypes and delayed calling
-        $type = static::getFieldType($this->get('type'));
+	if (!($type = static::getFieldType($ht['type'])))
+	   return null;
         $clazz = $type[1];
-        $inst = new $clazz($this->ht);
-        $inst->parent = $parent;
-        $inst->setForm($this->_form);
+        $inst = new $clazz($ht);
+	$inst->parent = $parent;
+	if ($form)
+           $inst->setForm($form);
         return $inst;
     }
+
 
     function __call($what, $args) {
         // XXX: Throw exception if $this->parent is not set
@@ -5601,44 +5621,13 @@ class AssignmentForm extends Form {
 
     function getFields() {
 
-        if ($this->fields)
-            return $this->fields;
+        if (!$this->fields) {
+		$fields = Form::loadFields('Assignment.yaml');
+		if (isset($this->_assignees) && isset($fields['assignee']))
+		    $fields['assignee']->setChoices($this->_assignees);
 
-        $fields = array(
-            'assignee' => new AssigneeField(array(
-                    'id'=>1, 'label' => __('Assignee'),
-                    'flags' => hexdec(0X450F3), 'required' => true,
-                    'validator-error' => __('Assignee selection required'),
-                    'configuration' => array(
-                        'criteria' => array(
-                            'available' => true,
-                            ),
-                       ),
-                    )
-                ),
-            'refer' => new BooleanField(array(
-                    'id'=>2, 'label'=>'', 'required'=>false,
-                    'default'=>false,
-                    'configuration'=>array(
-                        'desc' => 'Maintain referral access to current assignees')
-                    )
-                ),
-            'comments' => new TextareaField(array(
-                    'id' => 3, 'label'=> '', 'required'=>false, 'default'=>'',
-                    'configuration' => array(
-                        'html' => true,
-                        'size' => 'small',
-                        'placeholder' => __('Optional reason for the assignment'),
-                        ),
-                    )
-                ),
-            );
-
-
-        if (isset($this->_assignees))
-            $fields['assignee']->setChoices($this->_assignees);
-
-        $this->setFields($fields);
+		$this->setFields($fields);
+	}
 
         return $this->fields;
     }
