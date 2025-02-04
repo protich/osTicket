@@ -471,7 +471,7 @@ class MysqlSearchBackend extends SearchBackend {
      * not indexed in the _search table and add it to the index.
      */
     function IndexOldStuff() {
-        $class = get_class();
+        $class = get_class($this);
         $auto_create = function($db_error) use ($class) {
 
             if ($db_error != 1146)
@@ -905,7 +905,10 @@ class SavedQueue extends CustomQueue {
         $query = $this->getQuery();
         if ($agent)
             $query = $agent->applyVisibility($query);
-        $query->limit(false)->offset(false)->order_by(false);
+        $query->filter(Q::any([
+                'ticket_pid__isnull' => true,
+                'flags__hasbit' => Ticket::FLAG_LINKED
+            ]))->limit(false)->offset(false)->order_by(false);
         try {
             return $query->count();
         } catch (Exception $e) {
